@@ -373,7 +373,7 @@ SECRET_KEY=your-secret-key-here
 DEBUG=false
 
 # Condomínio
-CONDO_NAME="Residencial Nogueira Martins"
+CONDO_NAME="Condomínio Exemplo"
 SINDICO_PHONE=+55119XXXXXXXX
 ZELADOR_PHONE=+55119XXXXXXXX
 PORTARIA_PHONE=+55119XXXXXXXX

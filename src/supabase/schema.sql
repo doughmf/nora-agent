@@ -1,6 +1,6 @@
 -- =====================================================
 -- SYNDRA AGENT — Schema Supabase
--- Residencial Nogueira Martins
+-- Condomínio Exemplo
 -- =====================================================
 
 -- Extensões necessárias
@@ -238,7 +238,7 @@ CREATE POLICY "service_all_users" ON system_users FOR ALL TO service_role USING 
 -- DADOS INICIAIS (Tenant Default)
 -- ─────────────────────────────────────────────────────
 INSERT INTO condos (id, name, slug, evolution_instance) VALUES 
-('b9a1a8c0-7f2a-4a7b-8c8a-9a9a9a9a9a9a', 'Residencial Nogueira Martins', 'nogueira-martins', 'nora-condominio');
+('b9a1a8c0-7f2a-4a7b-8c8a-9a9a9a9a9a9a', 'Condomínio Exemplo', 'condominio-exemplo', 'syndra-condominio');
 
 INSERT INTO knowledge_chunks (condo_id, source, category, title, content, metadata) VALUES
 (
@@ -258,9 +258,9 @@ INSERT INTO knowledge_chunks (condo_id, source, category, title, content, metada
     '{"tipo": "horarios"}'
 );
 
--- Configurações Iniciais do Condomínio Nogueira Martins
+-- Configurações Iniciais do Condomínio
 INSERT INTO system_settings (condo_id, key, value) VALUES
-('b9a1a8c0-7f2a-4a7b-8c8a-9a9a9a9a9a9a', 'CONDO_NAME', 'Residencial Nogueira Martins'),
+('b9a1a8c0-7f2a-4a7b-8c8a-9a9a9a9a9a9a', 'CONDO_NAME', 'Condomínio Exemplo'),
 ('b9a1a8c0-7f2a-4a7b-8c8a-9a9a9a9a9a9a', 'AGENT_NAME', 'Syndra'),
 ('b9a1a8c0-7f2a-4a7b-8c8a-9a9a9a9a9a9a', 'LLM_PROVIDER', 'OpenRouter'),
 ('b9a1a8c0-7f2a-4a7b-8c8a-9a9a9a9a9a9a', 'LLM_MODEL', 'stepfun/step-3.5-flash:free');

@@ -141,7 +141,7 @@ Enquanto isso:
 [Boas-vindas + coleta de dados]:
 
 "👋 Olá! Sou a *Syndra*, assistente do 
-Residencial Nogueira Martins.
+Condomínio.
 
 Parece que é sua primeira vez aqui! 
 Para que eu possa te ajudar melhor, 
@@ -184,7 +184,7 @@ Formato da mensagem:
 
 {conteudo}
 
-_Residencial Nogueira Martins_
+_Condomínio_
 _Administração_"
 ```
 
