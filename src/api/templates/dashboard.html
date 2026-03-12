@@ -22,6 +22,37 @@
             </a>
         </div>
         <div class="flex-none gap-2">
+            <!-- Dropdown trocar condomínio (apenas super admin) -->
+            {% if user.role == 'super_admin' or user.role == 'admin' %}
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-ghost text-white border border-white/30 gap-2 btn-sm">
+                    <i class="fa-solid fa-building"></i>
+                    <span class="max-w-[140px] truncate">{{ condo_name }}</span>
+                    <i class="fa-solid fa-chevron-down text-xs"></i>
+                </div>
+                <ul tabindex="0" class="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-64 text-base-content">
+                    <li class="menu-title text-xs text-gray-400 px-2 py-1">Trocar condomínio</li>
+                    {% for c in all_condos %}
+                    <li>
+                        <form action="/admin/select-condo" method="POST">
+                            <input type="hidden" name="condo_id" value="{{ c.id }}">
+                            <button type="submit" class="w-full text-left flex items-center gap-2 {% if c.id == user.condo_id %}font-bold text-teal-600{% endif %}">
+                                <i class="fa-solid fa-building text-xs"></i>
+                                {{ c.name }}
+                                {% if c.id == user.condo_id %}<i class="fa-solid fa-check ml-auto text-teal-500 text-xs"></i>{% endif %}
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                    <li class="border-t mt-1 pt-1">
+                        <a href="/admin/condos" class="text-teal-600 font-semibold">
+                            <i class="fa-solid fa-gear text-xs"></i> Gerenciar Condomínios
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
+
             <div class="text-right mr-2 flex flex-col justify-center">
                 <span class="text-sm font-bold leading-tight">{{ user.name }}</span>
                 <span class="text-xs text-teal-200 leading-tight uppercase">{{ user.role }}</span>
@@ -34,8 +65,9 @@
                 </div>
                 <!-- Menu Dropdown do usuário -->
                 <ul tabindex="0" class="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52 text-base-content">
-                    {% if user.role == 'admin' %}
-                    <li><a href="/admin/settings" class="justify-between">Configurações</a></li>
+                    {% if user.role == 'admin' or user.role == 'super_admin' %}
+                    <li><a href="/admin/settings" class="justify-between">Configurações da IA</a></li>
+                    <li><a href="/admin/condos">Gerenciar Condomínios</a></li>
                     {% endif %}
                     <li><a href="/admin/logout" class="text-error"><i class="fa-solid fa-right-from-bracket"></i> Sair (Logout)</a></li>
                 </ul>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if editing %}Editar{% else %}Novo{% endif %} Condomínio - SYNDRA</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>.custom-gradient { background: linear-gradient(135deg, #0d9488, #0f766e); }</style>
+</head>
+<body class="bg-base-200 min-h-screen">
+
+    <div class="navbar custom-gradient text-primary-content shadow-lg px-8">
+        <div class="flex-1">
+            <a href="/admin/condos" class="btn btn-ghost text-white gap-2">
+                <i class="fa-solid fa-arrow-left"></i> Voltar
+            </a>
+            <span class="text-xl font-bold ml-2">
+                <i class="fa-solid fa-robot"></i> SYNDRA SaaS
+            </span>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-8 max-w-2xl">
+        <h1 class="text-2xl font-bold mb-6">
+            <i class="fa-solid fa-building mr-2 text-teal-600"></i>
+            {% if editing %}Editar Condomínio{% else %}Novo Condomínio{% endif %}
+        </h1>
+
+        {% if error %}
+        <div role="alert" class="alert alert-error mb-4">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <form action="{% if editing %}/admin/condos/{{ condo.id }}/edit{% else %}/admin/condos/new{% endif %}" method="POST" class="space-y-4">
+
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Nome do Condomínio *</span></label>
+                        <input type="text" name="name" class="input input-bordered" placeholder="Ex: Residencial Nogueira Martins" value="{{ condo.name or '' }}" required>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">CNPJ</span></label>
+                            <input type="text" name="cnpj" class="input input-bordered" placeholder="00.000.000/0001-00" value="{{ condo.cnpj or '' }}">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">Instância Evolution (WhatsApp) *</span></label>
+                            <input type="text" name="evolution_instance" class="input input-bordered" placeholder="Ex: condo-nogueira" value="{{ condo.evolution_instance or '' }}" required>
+                        </div>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Endereço</span></label>
+                        <input type="text" name="address" class="input input-bordered" placeholder="Rua, número, bairro, cidade" value="{{ condo.address or '' }}">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">Nome do Síndico</span></label>
+                            <input type="text" name="sindico_name" class="input input-bordered" placeholder="Nome completo" value="{{ condo.sindico_name or '' }}">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">WhatsApp do Síndico</span></label>
+                            <input type="text" name="sindico_phone" class="input input-bordered" placeholder="5511999999999" value="{{ condo.sindico_phone or '' }}">
+                        </div>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input type="checkbox" name="active" class="checkbox checkbox-primary" {% if condo.active != false %}checked{% endif %}>
+                            <span class="label-text font-semibold">Condomínio ativo</span>
+                        </label>
+                    </div>
+
+                    <div class="card-actions justify-end pt-4">
+                        <a href="/admin/condos" class="btn btn-ghost">Cancelar</a>
+                        <button type="submit" class="btn btn-primary custom-gradient text-white border-none">
+                            <i class="fa-solid fa-floppy-disk mr-1"></i>
+                            {% if editing %}Salvar Alterações{% else %}Criar Condomínio{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
