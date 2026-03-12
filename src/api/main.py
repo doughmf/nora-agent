@@ -180,13 +180,8 @@ def authenticate_admin(request: Request):
 
 @app.get("/admin/login", response_class=HTMLResponse)
 async def admin_login_page(request: Request):
-    """Página Web de Login."""
-    # Como o login é o portal de entrada, podemos tentar carregar um nome genérico 
-    # ou usar um ID padrão de sistema para o label inicial.
-    return templates.TemplateResponse(
-        request=request, name="login.html",
-        context={"condo_name": "Syndra SaaS"}
-    )
+    """Página Web de Login Simplificada para Debug."""
+    return "<h1>Syndra Login Page - Debug</h1><form method='POST'><input name='username'><input name='password' type='password'><button>Login</button></form>"
 
 @app.post("/admin/login")
 async def admin_login_post(request: Request, username: str = Form(...), password: str = Form(...)):
