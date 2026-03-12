@@ -2,12 +2,12 @@
 Syndra Agent — API Principal
 Residencial Nogueira Martins
 """
-from fastapi import FastAPI, Request, BackgroundTasks, HTTPException, Header, Depends, status
+from fastapi import FastAPI, Request, BackgroundTasks, HTTPException, Header, Depends, status, Form
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from contextlib import asynccontextmanager
 import logging, os, secrets, jwt, bcrypt
 from datetime import datetime, timedelta
@@ -46,29 +46,10 @@ app.add_middleware(
 async def health():
     return {
         "status": "ok",
-        "service": "Syndra Agent V2",
+        "service": "Syndra Agent",
+        "version": "1.1.0-tenant-fix",
         "timestamp": datetime.now().isoformat()
     }
-
-@app.get("/admin/debug-logs")
-async def debug_logs():
-    """Endpoint temporário para ver logs no servidor remoto."""
-    try:
-        if os.path.exists("uvicorn.log"):
-            with open("uvicorn.log", "r") as f:
-                return HTMLResponse(content=f"<pre>{f.read()[-10000:]}</pre>")
-        return {"error": "uvicorn.log not found"}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.get("/admin/source-code")
-async def source_code():
-    """Retorna o código do main.py para conferência."""
-    try:
-        with open(__file__, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f"<pre>{f.read()}</pre>")
-    except Exception as e:
-        return {"error": str(e)}
 
 # ─── Configuração Frontend Web ─────────────────────
 # Templates
@@ -152,8 +133,6 @@ async def get_stats(x_admin_key: str = Header(None)):
     }
 
 # ─── Segurança do Painel ───────────────────────────
-from fastapi import Form
-from fastapi.responses import RedirectResponse
 from src.supabase.client import supabase
 
 JWT_SECRET = os.getenv("SECRET_KEY", secrets.token_hex(32))
@@ -180,8 +159,11 @@ def authenticate_admin(request: Request):
 
 @app.get("/admin/login", response_class=HTMLResponse)
 async def admin_login_page(request: Request):
-    """Página Web de Login Simplificada para Debug."""
-    return "<h1>Syndra Login Page - Debug</h1><form method='POST'><input name='username'><input name='password' type='password'><button>Login</button></form>"
+    """Página Web de Login."""
+    return templates.TemplateResponse(
+        request=request, name="login.html",
+        context={"condo_name": "Syndra SaaS"}
+    )
 
 @app.post("/admin/login")
 async def admin_login_post(request: Request, username: str = Form(...), password: str = Form(...)):
@@ -226,7 +208,6 @@ async def admin_dashboard(request: Request, user_session: dict = Depends(authent
     """Página Web do Painel Admin Isolada por condo_id."""
     
     condo_id = user_session.get("condo_id")
-    from src.supabase.client import supabase
     
     try:
         residents = supabase.table("residents").select("id", count="exact").eq("condo_id", condo_id).execute()
