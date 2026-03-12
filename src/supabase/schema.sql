@@ -11,14 +11,24 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- TABELA: residents
 -- ─────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS residents (
-    id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    whatsapp_phone  TEXT UNIQUE NOT NULL,
-    name            TEXT,
-    apartment       TEXT,
-    block           TEXT,
-    is_owner        BOOLEAN DEFAULT FALSE,
-    is_active       BOOLEAN DEFAULT TRUE,
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    whatsapp_phone  VARCHAR(20) UNIQUE NOT NULL,
+    name            VARCHAR(100),
+    apartment       VARCHAR(10),
+    block           VARCHAR(10),
+    is_owner        BOOLEAN DEFAULT true,
     profile         JSONB DEFAULT '{"onboarding_complete": false}',
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- TABELA: system_users (Painel Web e Níveis de Acesso)
+CREATE TABLE IF NOT EXISTS system_users (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username        VARCHAR(50) UNIQUE NOT NULL,
+    password_hash   VARCHAR(255) NOT NULL,
+    role            VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'sindico', 'colaborador')),
+    name            VARCHAR(100) NOT NULL,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
