@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     # Evolution API
     EVOLUTION_API_URL: str = "http://localhost:8080"
     EVOLUTION_API_KEY: str = ""
-    EVOLUTION_INSTANCE: str = "nora-condominio"
+    EVOLUTION_INSTANCE: str = "syndra-condominio"
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379"

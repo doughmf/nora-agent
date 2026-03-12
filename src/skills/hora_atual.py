@@ -5,7 +5,7 @@ TOOL_DEFINITION = {
     "type": "function",
     "function": {
         "name": "consultar_hora_servidor",
-        "description": "Retorna o horário exato e atual do servidor da Nora. Use APENAS quando o usuário perguntar explicitamente a hora ou data de hoje.",
+        "description": "Retorna o horário exato e atual do servidor da Syndra. Use APENAS quando o usuário perguntar explicitamente a hora ou data de hoje.",
         "parameters": {
             "type": "object",
             "properties": {},
@@ -20,5 +20,5 @@ async def execute(**kwargs) -> dict:
     return {
         "hora_servidor": hora_atual,
         "mensagem": "Horário consultado com sucesso.",
-        "fonte": "Nora Agent OS"
+        "fonte": "Syndra Agent OS"
     }

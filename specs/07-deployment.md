@@ -33,18 +33,18 @@ Acesse `http://<IP-DA-VPS>:3000` no navegador e configure sua senha de administr
 
 ### Passo 2: Criar o Projeto
 1. Dentro do Easypanel, clique em **Create Project**.
-2. Dê o nome de `nora-agent`.
+2. Dê o nome de `syndra-agent`.
 
 ### Passo 3: Adicionar a Aplicação (via Compose)
 A forma mais fácil de rodar todo o sistema de uma vez é usando o Docker Compose nativo do repositório no Easypanel.
-1. Acesse seu projeto `nora-agent`.
+1. Acesse seu projeto `syndra-agent`.
 2. Clique em **Services** -> **New Service**.
-3. Escolha **App** ou **Compose**. Sugerimos **Compose** para subir os 3 serviços (Nora, Redis, Evolution) simultaneamente colando o seu arquivo `docker-compose.yml`.
+3. Escolha **App** ou **Compose**. Sugerimos **Compose** para subir os 3 serviços (Syndra, Redis, Evolution) simultaneamente colando o seu arquivo `docker-compose.yml`.
 
 Caso prefira deploy individual por Serviço do tipo "App", você criará:
 1. **Redis**: Use o template *Redis* do Easypanel.
 2. **Evolution API**: Crie um App a partir da imagem Docker `atendai/evolution-api:v2.2.3`.
-3. **Nora Agent**: Crie um App e conecte ao repositório GitHub (opção App -> GitHub) apontando para o seu `Dockerfile`.
+3. **Syndra Agent**: Crie um App e conecte ao repositório GitHub (opção App -> GitHub) apontando para o seu `Dockerfile`.
 
 ### Passo 4: Configurar Variáveis de Ambiente
 No Easypanel, vá até a aba **Environment** do serviço e cole as chaves do seu `.env.example`.
@@ -53,7 +53,7 @@ No Easypanel, vá até a aba **Environment** do serviço e cole as chaves do seu
 O Easypanel traz Traefik integrado que gerencia HTTPS/SSL automaticamente.
 Vá na aba **Domains** do aplicativo e adicione:
 - `api.seu-dominio.com` apontando para a porta 8080 (Evolution API)
-- `nora.seu-dominio.com` apontando para a porta 8000 (Nora FastAPI)
+- `syndra.seu-dominio.com` apontando para a porta 8000 (Syndra FastAPI)
 
 E clique em **Save**. O SSL será provisionado.
 
@@ -66,10 +66,10 @@ E clique em **Save**. O SSL será provisionado.
 version: '3.8'
 
 services:
-  # ─── Aplicação Nora ─────────────────────────
-  nora-app:
+  # ─── Aplicação Syndra ─────────────────────────
+  syndra-app:
     build: .
-    container_name: nora_app
+    container_name: syndra_app
     restart: always
     ports:
       - "8000:8000"
@@ -116,7 +116,7 @@ services:
   # ─── Redis (Fila de mensagens) ──────────────
   redis:
     image: redis:7-alpine
-    container_name: nora_redis
+    container_name: syndra_redis
     restart: always
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
@@ -153,8 +153,8 @@ COPY config/ ./config/
 COPY scripts/ ./scripts/
 
 # Usuário não-root
-RUN useradd -m -u 1000 nora && chown -R nora:nora /app
-USER nora
+RUN useradd -m -u 1000 syndra && chown -R syndra:syndra /app
+USER syndra
 
 EXPOSE 8000
 
@@ -188,7 +188,7 @@ pydantic-settings==2.6.0
 
 ```bash
 # Ver logs em tempo real
-docker logs -f nora_app
+docker logs -f syndra_app
 
 # Reiniciar serviços pelo Easypanel
 No dashboard do Easypanel -> Seu Serviço -> botão "Restart".
@@ -230,7 +230,7 @@ PÓS-DEPLOY:
 □ Testar reserva de espaço
 □ Testar broadcast de aviso
 □ Testar detecção de emergência
-□ Verificar logs sem erros (docker logs nora_app)
+□ Verificar logs sem erros (docker logs syndra_app)
 □ Confirmar que síndico recebe notificações urgentes
 □ Enviar mensagem de apresentação no grupo do condomínio
 ```

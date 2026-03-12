@@ -4,7 +4,7 @@
 
 set -e  # Parar em caso de erro
 
-echo "🚀 Iniciando setup do Nora Agent..."
+echo "🚀 Iniciando setup do Syndra Agent..."
 
 # ──────────────────────────────────────
 # 1. ATUALIZAR SISTEMA
@@ -62,8 +62,8 @@ systemctl restart fail2ban
 # ──────────────────────────────────────
 # 6. CLONAR REPOSITÓRIO
 # ──────────────────────────────────────
-git clone https://github.com/seu-usuario/nora-agent.git /opt/nora-agent
-cd /opt/nora-agent
+git clone https://github.com/seu-usuario/syndra-agent.git /opt/syndra-agent
+cd /opt/syndra-agent
 
 # ──────────────────────────────────────
 # 7. CONFIGURAR VARIÁVEIS DE AMBIENTE
@@ -71,7 +71,7 @@ cd /opt/nora-agent
 cp config/.env.example .env
 echo ""
 echo "⚠️  ATENÇÃO: Edite o arquivo .env antes de continuar!"
-echo "   nano /opt/nora-agent/.env"
+echo "   nano /opt/syndra-agent/.env"
 echo ""
 read -p "Pressione ENTER após editar o .env..."
 
@@ -86,10 +86,10 @@ sleep 15
 # ──────────────────────────────────────
 # 9. CONFIGURAR SSL (HTTPS)
 # ──────────────────────────────────────
-read -p "Seu domínio (ex: nora.residencial.com.br): " DOMAIN
+read -p "Seu domínio (ex: syndra.residencial.com.br): " DOMAIN
 
 # Configurar Nginx
-cat > /etc/nginx/sites-available/nora-agent << EOF
+cat > /etc/nginx/sites-available/syndra-agent << EOF
 server {
     listen 80;
     server_name $DOMAIN;
@@ -112,7 +112,7 @@ server {
 }
 EOF
 
-ln -sf /etc/nginx/sites-available/nora-agent /etc/nginx/sites-enabled/
+ln -sf /etc/nginx/sites-available/syndra-agent /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
 
 # Gerar certificado SSL
@@ -125,12 +125,12 @@ echo "✅ SSL configurado para $DOMAIN"
 # ──────────────────────────────────────
 echo ""
 echo "📚 Populando base de conhecimento..."
-echo "   Coloque seus PDFs em /opt/nora-agent/knowledge_docs/"
-echo "   Depois execute: docker exec nora-app python scripts/seed_knowledge.py"
+echo "   Coloque seus PDFs em /opt/syndra-agent/knowledge_docs/"
+echo "   Depois execute: docker exec syndra-app python scripts/seed_knowledge.py"
 
 echo ""
 echo "✅ ══════════════════════════════════════"
-echo "✅  Nora Agent instalado com sucesso!"
+echo "✅  Syndra Agent instalado com sucesso!"
 echo "✅  URL: https://$DOMAIN"
 echo "✅  Webhook: https://$DOMAIN/webhook/whatsapp"
 echo "✅ ══════════════════════════════════════"

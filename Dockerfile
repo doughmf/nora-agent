@@ -22,8 +22,8 @@ COPY scripts/ ./scripts/
 RUN mkdir -p /app/knowledge_docs /app/logs
 
 # Usuário não-root
-RUN useradd -m -u 1000 nora && chown -R nora:nora /app
-USER nora
+RUN useradd -m -u 1000 syndra && chown -R syndra:syndra /app
+USER syndra
 
 EXPOSE 8000
 

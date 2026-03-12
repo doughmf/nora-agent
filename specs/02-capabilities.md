@@ -8,7 +8,7 @@
 ## 1. MAPA DE CAPACIDADES
 
 ```
-NORA AGENT
+SYNDRA AGENT
 ├── PILAR 1: Atendimento ao Morador
 │   ├── Responder dúvidas sobre regimento interno
 │   ├── Informar horários de silêncio, piscina, academia
@@ -189,7 +189,7 @@ INTENTS = {
 
 ## 4. LIMITES DE ESCOPO (Fora do escopo)
 
-A Nora NÃO deve:
+A Syndra NÃO deve:
 - Dar conselhos jurídicos sobre disputas entre condôminos
 - Aprovar ou negar pedidos de isenção de taxa
 - Interferir em decisões de assembleia

@@ -1,6 +1,6 @@
-# PRD — Nora Agent
+# PRD — Syndra Agent
 ## Product Requirements Document
-**Produto:** Nora — IA de Gestão do Residencial Nogueira Martins  
+**Produto:** Syndra — IA de Gestão do Residencial Nogueira Martins  
 **Versão:** 1.0  
 **Data:** Março 2025  
 **Status:** Em Desenvolvimento
@@ -10,10 +10,10 @@
 ## 1. Visão Geral do Produto
 
 ### 1.1 Problema
-Condomínios residenciais enfrentam gargalos recorrentes de comunicação: moradores não sabem a quem recorrer, chamados de manutenção se perdem, reservas de espaços geram conflitos e comunicados da administração chegam tarde ou são ignorados. O síndico e o zelador ficam sobrecarregados com demandas repetitivas que poderiam ser resolvidas de forma automatizada.
+Condomínios residenciais enfrentam gargalos recorrentes de comunicação: moradores não sabem a quem recorrer, chamados de manutenção se perdem, reservas de espaços geram conflitos e comunicados da administração chegam tarde ou são igsyndrados. O síndico e o zelador ficam sobrecarregados com demandas repetitivas que poderiam ser resolvidas de forma automatizada.
 
 ### 1.2 Solução
-A **Nora** é uma assistente de inteligência artificial que opera via WhatsApp, disponível 24 horas por dia, capaz de resolver autonomamente as demandas mais comuns do condomínio — e escalar para humanos apenas quando necessário.
+A **Syndra** é uma assistente de inteligência artificial que opera via WhatsApp, disponível 24 horas por dia, capaz de resolver autonomamente as demandas mais comuns do condomínio — e escalar para humanos apenas quando necessário.
 
 ### 1.3 Proposta de Valor
 - **Para o morador:** atendimento imediato, sem fila, no canal que já usa.
@@ -26,7 +26,7 @@ A **Nora** é uma assistente de inteligência artificial que opera via WhatsApp,
 
 | Objetivo | Métrica | Meta (90 dias) |
 |---|---|---|
-| Reduzir chamadas ao síndico | % de demandas resolvidas pela Nora sem escalação | ≥ 70% |
+| Reduzir chamadas ao síndico | % de demandas resolvidas pela Syndra sem escalação | ≥ 70% |
 | Agilidade no atendimento | Tempo médio de primeira resposta | < 30 segundos |
 | Adoção pelos moradores | % de unidades que interagiram ao menos 1x | ≥ 60% |
 | Satisfação do morador | NPS pós-atendimento (survey mensal) | ≥ 7,5 |
@@ -134,7 +134,7 @@ A **Nora** é uma assistente de inteligência artificial que opera via WhatsApp,
 ## 7. Arquitetura Resumida
 
 ```
-WhatsApp ──► Evolution API v2 ──► FastAPI (Nora App)
+WhatsApp ──► Evolution API v2 ──► FastAPI (Syndra App)
                                         │
                           ┌─────────────┼─────────────┐
                           │             │             │
@@ -196,7 +196,7 @@ WhatsApp ──► Evolution API v2 ──► FastAPI (Nora App)
 - [ ] Testar fluxo de emergência e notificação ao síndico
 
 ### Fase 3 — Lançamento Piloto (Semana 4)
-- [ ] Apresentar a Nora para o síndico e administração
+- [ ] Apresentar a Syndra para o síndico e administração
 - [ ] Enviar mensagem de apresentação no grupo do condomínio
 - [ ] Monitorar logs e corrigir problemas em tempo real
 - [ ] Coletar feedback dos primeiros moradores
@@ -230,7 +230,7 @@ O produto estará pronto para go-live quando:
 - [ ] Base de conhecimento populada com regimento interno completo
 - [ ] Sistema de emergência testado e síndico notificado corretamente
 - [ ] Logs funcionando sem erros críticos por 48h consecutivas
-- [ ] Síndico treinado e aprovando o comportamento da Nora
+- [ ] Síndico treinado e aprovando o comportamento da Syndra
 
 ---
 

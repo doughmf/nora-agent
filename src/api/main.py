@@ -1,5 +1,5 @@
 """
-Nora Agent — API Principal
+Syndra Agent — API Principal
 Residencial Nogueira Martins
 """
 from fastapi import FastAPI, Request, BackgroundTasks, HTTPException, Header, Depends, status
@@ -18,18 +18,18 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
-logger = logging.getLogger("nora")
+logger = logging.getLogger("syndra")
 
 # ─── Lifespan ──────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("🏠 Nora Agent iniciando...")
+    logger.info("🏠 Syndra Agent iniciando...")
     yield
-    logger.info("🔴 Nora Agent encerrando...")
+    logger.info("🔴 Syndra Agent encerrando...")
 
 # ─── App ───────────────────────────────────────────
 app = FastAPI(
-    title="Nora Agent API",
+    title="Syndra Agent API",
     description="IA do Residencial Nogueira Martins",
     version="1.0.0",
     lifespan=lifespan
@@ -46,7 +46,7 @@ app.add_middleware(
 async def health():
     return {
         "status": "ok",
-        "service": "Nora Agent",
+        "service": "Syndra Agent",
         "timestamp": datetime.now().isoformat()
     }
 
@@ -146,7 +146,7 @@ def create_access_token(data: dict):
 
 def authenticate_admin(request: Request):
     """Verifica se o usuário possui sessão JWT ativa nos cookies."""
-    session_token = request.cookies.get("nora_admin_session")
+    session_token = request.cookies.get("syndra_admin_session")
     
     if not session_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Não autorizado")
@@ -161,16 +161,17 @@ def authenticate_admin(request: Request):
 @app.get("/admin/login", response_class=HTMLResponse)
 async def admin_login_page(request: Request):
     """Página Web de Login."""
+    # Como o login é o portal de entrada, podemos tentar carregar um nome genérico 
+    # ou usar um ID padrão de sistema para o label inicial.
     return templates.TemplateResponse(
         request=request, name="login.html",
-        context={"condo_name": get_setting("CONDO_NAME", "Residencial Nogueira Martins")}
+        context={"condo_name": "Syndra SaaS"}
     )
 
 @app.post("/admin/login")
 async def admin_login_post(request: Request, username: str = Form(...), password: str = Form(...)):
-    """Busca o usuário no banco, valida e cria sessão JWT."""
+    """Busca o usuário no banco, valida e cria sessão JWT com condo_id."""
     
-    # Validação contra o banco de dados
     try:
         res = supabase.table("system_users").select("*").eq("username", username).execute()
         user_data = res.data[0] if res.data else None
@@ -182,45 +183,44 @@ async def admin_login_post(request: Request, username: str = Form(...), password
         return templates.TemplateResponse(
             request=request, name="login.html",
             context={
-                "condo_name": get_setting("CONDO_NAME", "Residencial Nogueira Martins"),
+                "condo_name": "Syndra SaaS",
                 "error": "Usuário ou senha incorretos."
             }
         )
     
-    # Assina JWT contendo username, nome e role (admin, sindico, colaborador)
+    # Assina JWT contendo username, nome, role e o CONDO_ID (Essencial para o SaaS)
     token_payload = {
         "sub": user_data["username"],
         "name": user_data["name"],
-        "role": user_data["role"]
+        "role": user_data["role"],
+        "condo_id": user_data["condo_id"]
     }
     jwt_token = create_access_token(token_payload)
     
-    # Redireciona e seta o cookie
     response = RedirectResponse(url="/admin/dashboard", status_code=status.HTTP_302_FOUND)
     response.set_cookie(
-        key="nora_admin_session",
+        key="syndra_admin_session",
         value=jwt_token,
         httponly=True,
-        max_age=3600 * 24 # 1 dia
+        max_age=3600 * 24 
     )
     return response
 
 @app.get("/admin/dashboard", response_class=HTMLResponse)
 async def admin_dashboard(request: Request, user_session: dict = Depends(authenticate_admin)):
-    """Página Web do Painel Admin (Protegida)."""
+    """Página Web do Painel Admin Isolada por condo_id."""
     
-    # Busca real do Supabase
+    condo_id = user_session.get("condo_id")
     from src.supabase.client import supabase
+    
     try:
-        # Estatísticas
-        residents = supabase.table("residents").select("id", count="exact").execute()
-        messages = supabase.table("conversations").select("id", count="exact").execute()
-        mnt_open = supabase.table("maintenance_requests").select("id", count="exact").eq("status", "aberto").execute()
-        res_pend = supabase.table("space_bookings").select("id", count="exact").eq("status", "pendente").execute()
+        residents = supabase.table("residents").select("id", count="exact").eq("condo_id", condo_id).execute()
+        messages = supabase.table("conversations").select("id", count="exact").eq("condo_id", condo_id).execute()
+        mnt_open = supabase.table("maintenance_requests").select("id", count="exact").eq("condo_id", condo_id).eq("status", "aberto").execute()
+        res_pend = supabase.table("space_bookings").select("id", count="exact").eq("condo_id", condo_id).eq("status", "pendente").execute()
         
-        # Últimas listagens
-        recent_res = supabase.table("residents").select("*").order("created_at", desc=True).limit(5).execute()
-        recent_mnt = supabase.table("maintenance_requests").select("*").order("created_at", desc=True).limit(5).execute()
+        recent_res = supabase.table("residents").select("*").eq("condo_id", condo_id).order("created_at", desc=True).limit(5).execute()
+        recent_mnt = supabase.table("maintenance_requests").select("*").eq("condo_id", condo_id).order("created_at", desc=True).limit(5).execute()
         
         stats = {
             "residents_count": residents.count or 0,
@@ -229,7 +229,7 @@ async def admin_dashboard(request: Request, user_session: dict = Depends(authent
             "pending_bookings": res_pend.count or 0
         }
     except Exception as e:
-        logger.error(f"Erro ao carregar dashboard: {e}")
+        logger.error(f"Erro dashboard: {e}")
         stats = {"residents_count": 0, "messages_count": 0, "open_maintenance": 0, "pending_bookings": 0}
         recent_res = type('obj', (object,), {'data': []})
         recent_mnt = type('obj', (object,), {'data': []})
@@ -237,7 +237,7 @@ async def admin_dashboard(request: Request, user_session: dict = Depends(authent
     return templates.TemplateResponse(
         request=request, name="dashboard.html",
         context={
-            "condo_name": get_setting("CONDO_NAME", "Residencial Nogueira Martins"),
+            "condo_name": get_setting(condo_id, "CONDO_NAME", "Residencial Nogueira Martins"),
             "stats": stats,
             "recent_residents": recent_res.data if hasattr(recent_res, 'data') else [],
             "recent_maintenance": recent_mnt.data if hasattr(recent_mnt, 'data') else [],
@@ -247,24 +247,24 @@ async def admin_dashboard(request: Request, user_session: dict = Depends(authent
 
 @app.get("/admin/settings", response_class=HTMLResponse)
 async def admin_settings_page(request: Request, user_session: dict = Depends(authenticate_admin)):
-    """Página Web de Configurações (exclusiva para admins)."""
+    """Página Web de Configurações Isolada."""
     
+    condo_id = user_session.get("condo_id")
     if user_session.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Acesso exclusivo para administradores.")
         
-    # Carrega as configurações principais para alimentar os campos baseados na lista original    
     keys_to_load = [
         "AGENT_NAME", "LLM_PROVIDER", "LLM_MODEL", "LLM_API_KEY", "CONDO_NAME", "CONDO_CNPJ", "CONDO_ADDRESS", "SINDICO_NAME", "SINDICO_PHONE",
         "ZELADOR_NAME", "ZELADOR_PHONE", "PORTARIA_PHONE", "ADMINISTRADORA_PHONE",
         "SALAO_PRECO_NOITE", "SALAO_PRECO_DIA", "CHURRASQUEIRA_PRECO", "PIX_TIPO", "PIX_CHAVE", "PIX_NOME"
     ]
     
-    current_settings = {k: get_setting(k) for k in keys_to_load}
+    current_settings = {k: get_setting(condo_id, k) for k in keys_to_load}
     
     return templates.TemplateResponse(
         request=request, name="settings.html",
         context={
-            "condo_name": get_setting("CONDO_NAME", "Residencial Nogueira Martins"),
+            "condo_name": get_setting(condo_id, "CONDO_NAME", "Residencial Nogueira Martins"),
             "user": user_session,
             "settings": current_settings
         }
@@ -272,26 +272,26 @@ async def admin_settings_page(request: Request, user_session: dict = Depends(aut
 
 @app.post("/admin/settings", response_class=HTMLResponse)
 async def admin_settings_save(request: Request, user_session: dict = Depends(authenticate_admin)):
-    """Processa o salvamento do formulário de configs."""
+    """Processa o salvamento isolado por condomínio."""
     
+    condo_id = user_session.get("condo_id")
     if user_session.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Acesso exclusivo para administradores.")
         
     form_data = await request.form()
     
     for key, value in form_data.items():
-        set_setting(key, str(value))
+        set_setting(condo_id, key, str(value))
         
-    # Recarrega para mostrar form atualizado
-    current_settings = {k: get_setting(k) for k in form_data.keys()}
+    current_settings = {k: get_setting(condo_id, k) for k in form_data.keys()}
     
     return templates.TemplateResponse(
         request=request, name="settings.html",
         context={
-            "condo_name": get_setting("CONDO_NAME", "Residencial Nogueira Martins"),
+            "condo_name": get_setting(condo_id, "CONDO_NAME", "Residencial Nogueira Martins"),
             "user": user_session,
             "settings": current_settings,
-            "message": "Configurações Globais atualizadas com sucesso!"
+            "message": "Configurações do Condomínio atualizadas com sucesso!"
         }
     )
 
@@ -299,5 +299,5 @@ async def admin_settings_save(request: Request, user_session: dict = Depends(aut
 async def admin_logout():
     """Encerra a sessão limpando o cookie."""
     response = RedirectResponse(url="/admin/login", status_code=303)
-    response.delete_cookie("nora_admin_session")
+    response.delete_cookie("syndra_admin_session")
     return response

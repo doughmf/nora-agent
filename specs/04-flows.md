@@ -40,7 +40,7 @@
 ```
 Morador: "A lâmpada do corredor 3 está queimada"
            ↓
-[Nora confirma entendimento]
+[Syndra confirma entendimento]
 "Entendido! Vou registrar um chamado de manutenção. 
 Me diga: isso está afetando a segurança agora?"
 
@@ -140,7 +140,7 @@ Enquanto isso:
            ↓ Não encontrado
 [Boas-vindas + coleta de dados]:
 
-"👋 Olá! Sou a *Nora*, assistente do 
+"👋 Olá! Sou a *Syndra*, assistente do 
 Residencial Nogueira Martins.
 
 Parece que é sua primeira vez aqui! 
@@ -165,7 +165,7 @@ preciso de algumas informações:
 ```
 [Admin cria announcement via painel]
            ↓
-[Nora agenda ou envia imediatamente]
+[Syndra agenda ou envia imediatamente]
            ↓
 [Buscar todos os moradores ativos]
            ↓

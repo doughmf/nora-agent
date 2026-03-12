@@ -1,5 +1,5 @@
 -- =====================================================
--- NORA AGENT — Schema Supabase
+-- SYNDRA AGENT — Schema Supabase
 -- Residencial Nogueira Martins
 -- =====================================================
 
@@ -8,26 +8,42 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS vector;
 
 -- ─────────────────────────────────────────────────────
+-- TABELA: condos (Tenants)
+-- ─────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS condos (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name            VARCHAR(100) NOT NULL,
+    slug            VARCHAR(50) UNIQUE NOT NULL, -- Ex: nogueira-martins
+    evolution_instance VARCHAR(100), -- Nome da instância no Evolution API
+    status          VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'trial')),
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────────────
 -- TABELA: residents
 -- ─────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS residents (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    whatsapp_phone  VARCHAR(20) UNIQUE NOT NULL,
+    condo_id        UUID REFERENCES condos(id) ON DELETE CASCADE,
+    whatsapp_phone  VARCHAR(20) NOT NULL,
     name            VARCHAR(100),
     apartment       VARCHAR(10),
     block           VARCHAR(10),
     is_owner        BOOLEAN DEFAULT true,
     profile         JSONB DEFAULT '{"onboarding_complete": false}',
     created_at      TIMESTAMPTZ DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ DEFAULT NOW()
+    updated_at      TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (condo_id, whatsapp_phone) -- Telefone único dentro de um condomínio
 );
 
 -- TABELA: system_users (Painel Web e Níveis de Acesso)
 CREATE TABLE IF NOT EXISTS system_users (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    condo_id        UUID REFERENCES condos(id) ON DELETE CASCADE,
     username        VARCHAR(50) UNIQUE NOT NULL,
     password_hash   VARCHAR(255) NOT NULL,
-    role            VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'sindico', 'colaborador')),
+    role            VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'sindico', 'colaborador', 'super_admin')),
     name            VARCHAR(100) NOT NULL,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
@@ -35,9 +51,11 @@ CREATE TABLE IF NOT EXISTS system_users (
 
 -- TABELA: system_settings (Configurações Dinâmicas via Painel Web)
 CREATE TABLE IF NOT EXISTS system_settings (
-    key             VARCHAR(100) PRIMARY KEY,
+    condo_id        UUID REFERENCES condos(id) ON DELETE CASCADE,
+    key             VARCHAR(100) NOT NULL,
     value           TEXT NOT NULL,
-    updated_at      TIMESTAMPTZ DEFAULT NOW()
+    updated_at      TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (condo_id, key)
 );
 
 -- ─────────────────────────────────────────────────────
@@ -45,6 +63,7 @@ CREATE TABLE IF NOT EXISTS system_settings (
 -- ─────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS conversations (
     id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    condo_id        UUID REFERENCES condos(id) ON DELETE CASCADE,
     resident_id     UUID REFERENCES residents(id) ON DELETE SET NULL,
     whatsapp_phone  TEXT NOT NULL,
     session_id      TEXT NOT NULL,
@@ -55,7 +74,8 @@ CREATE TABLE IF NOT EXISTS conversations (
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_conversations_phone ON conversations (whatsapp_phone, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_conversations_condo ON conversations (condo_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_phone ON conversations (condo_id, whatsapp_phone, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_conversations_session ON conversations (session_id);
 
 -- ─────────────────────────────────────────────────────
@@ -63,6 +83,7 @@ CREATE INDEX IF NOT EXISTS idx_conversations_session ON conversations (session_i
 -- ─────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS knowledge_chunks (
     id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    condo_id    UUID REFERENCES condos(id) ON DELETE CASCADE,
     source      TEXT NOT NULL,
     category    TEXT NOT NULL CHECK (category IN ('regimento', 'taxa', 'contato', 'calendario', 'faq', 'outro')),
     title       TEXT,
@@ -73,11 +94,14 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
     updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE INDEX IF NOT EXISTS idx_knowledge_condo ON knowledge_chunks (condo_id);
+
 CREATE INDEX IF NOT EXISTS idx_knowledge_embedding ON knowledge_chunks 
     USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
--- Função de busca semântica
+-- Função de busca semântica (Multi-tenant)
 CREATE OR REPLACE FUNCTION search_knowledge(
+    p_condo_id uuid,
     query_embedding vector(1536),
     match_threshold float DEFAULT 0.75,
     match_count int DEFAULT 5
@@ -95,7 +119,8 @@ LANGUAGE SQL STABLE AS $$
         id, source, category, content, metadata,
         1 - (embedding <=> query_embedding) AS similarity
     FROM knowledge_chunks
-    WHERE 1 - (embedding <=> query_embedding) > match_threshold
+    WHERE condo_id = p_condo_id
+      AND 1 - (embedding <=> query_embedding) > match_threshold
     ORDER BY embedding <=> query_embedding
     LIMIT match_count;
 $$;
@@ -107,6 +132,7 @@ CREATE SEQUENCE IF NOT EXISTS maintenance_seq START 1;
 
 CREATE TABLE IF NOT EXISTS maintenance_requests (
     id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    condo_id    UUID REFERENCES condos(id) ON DELETE CASCADE,
     protocol    TEXT UNIQUE NOT NULL DEFAULT (
                     'MNT-' || to_char(NOW(), 'YYYY') || '-' || 
                     LPAD(nextval('maintenance_seq')::TEXT, 4, '0')
@@ -125,7 +151,8 @@ CREATE TABLE IF NOT EXISTS maintenance_requests (
     metadata    JSONB DEFAULT '{}'
 );
 
-CREATE INDEX IF NOT EXISTS idx_maintenance_status ON maintenance_requests (status, urgency);
+CREATE INDEX IF NOT EXISTS idx_maintenance_condo ON maintenance_requests (condo_id);
+CREATE INDEX IF NOT EXISTS idx_maintenance_status ON maintenance_requests (condo_id, status, urgency);
 CREATE INDEX IF NOT EXISTS idx_maintenance_resident ON maintenance_requests (resident_id);
 
 -- ─────────────────────────────────────────────────────
@@ -135,6 +162,7 @@ CREATE SEQUENCE IF NOT EXISTS booking_seq START 1;
 
 CREATE TABLE IF NOT EXISTS space_bookings (
     id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    condo_id        UUID REFERENCES condos(id) ON DELETE CASCADE,
     booking_ref     TEXT UNIQUE NOT NULL DEFAULT (
                         'RES-' || to_char(NOW(), 'YYYY') || '-' || 
                         LPAD(nextval('booking_seq')::TEXT, 4, '0')
@@ -149,14 +177,17 @@ CREATE TABLE IF NOT EXISTS space_bookings (
     payment_status  TEXT DEFAULT 'aguardando' CHECK (payment_status IN ('aguardando', 'pago', 'reembolsado')),
     notes           TEXT,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (space, booking_date, period)
+    UNIQUE (condo_id, space, booking_date, period)
 );
+
+CREATE INDEX IF NOT EXISTS idx_bookings_condo ON space_bookings (condo_id);
 
 -- ─────────────────────────────────────────────────────
 -- TABELA: announcements
 -- ─────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS announcements (
     id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    condo_id    UUID REFERENCES condos(id) ON DELETE CASCADE,
     title       TEXT NOT NULL,
     content     TEXT NOT NULL,
     type        TEXT NOT NULL CHECK (type IN ('aviso', 'assembleia', 'emergencia', 'servico', 'manutencao')),
@@ -167,6 +198,8 @@ CREATE TABLE IF NOT EXISTS announcements (
     created_by  TEXT,
     created_at  TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_announcements_condo ON announcements (condo_id);
 
 -- ─────────────────────────────────────────────────────
 -- TABELA: security_events (Auditoria)
@@ -180,26 +213,36 @@ CREATE TABLE IF NOT EXISTS security_events (
 );
 
 -- ─────────────────────────────────────────────────────
--- ROW LEVEL SECURITY
+-- ROW LEVEL SECURITY (Isolamento por Condomínio)
 -- ─────────────────────────────────────────────────────
+ALTER TABLE condos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE residents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE maintenance_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE space_bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE knowledge_chunks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE system_users ENABLE ROW LEVEL SECURITY;
 
--- Service role tem acesso total (backend)
-CREATE POLICY "service_all" ON residents FOR ALL TO service_role USING (true);
-CREATE POLICY "service_all" ON conversations FOR ALL TO service_role USING (true);
-CREATE POLICY "service_all" ON maintenance_requests FOR ALL TO service_role USING (true);
-CREATE POLICY "service_all" ON space_bookings FOR ALL TO service_role USING (true);
-CREATE POLICY "service_all" ON knowledge_chunks FOR ALL TO service_role USING (true);
+-- Service role tem acesso total (backend centralizado)
+CREATE POLICY "service_all_condos" ON condos FOR ALL TO service_role USING (true);
+CREATE POLICY "service_all_residents" ON residents FOR ALL TO service_role USING (true);
+CREATE POLICY "service_all_conversations" ON conversations FOR ALL TO service_role USING (true);
+CREATE POLICY "service_all_maintenance" ON maintenance_requests FOR ALL TO service_role USING (true);
+CREATE POLICY "service_all_bookings" ON space_bookings FOR ALL TO service_role USING (true);
+CREATE POLICY "service_all_knowledge" ON knowledge_chunks FOR ALL TO service_role USING (true);
+CREATE POLICY "service_all_settings" ON system_settings FOR ALL TO service_role USING (true);
+CREATE POLICY "service_all_users" ON system_users FOR ALL TO service_role USING (true);
 
 -- ─────────────────────────────────────────────────────
--- DADOS INICIAIS (Espaços e contatos)
+-- DADOS INICIAIS (Tenant Default)
 -- ─────────────────────────────────────────────────────
-INSERT INTO knowledge_chunks (source, category, title, content, metadata) VALUES
+INSERT INTO condos (id, name, slug, evolution_instance) VALUES 
+('b9a1a8c0-7f2a-4a7b-8c8a-9a9a9a9a9a9a', 'Residencial Nogueira Martins', 'nogueira-martins', 'nora-condominio');
+
+INSERT INTO knowledge_chunks (condo_id, source, category, title, content, metadata) VALUES
 (
+    'b9a1a8c0-7f2a-4a7b-8c8a-9a9a9a9a9a9a',
     'Sistema Interno',
     'contato',
     'Contatos de Emergência',
@@ -207,9 +250,23 @@ INSERT INTO knowledge_chunks (source, category, title, content, metadata) VALUES
     '{"tipo": "contatos_emergencia"}'
 ),
 (
+    'b9a1a8c0-7f2a-4a7b-8c8a-9a9a9a9a9a9a',
     'Sistema Interno',
     'faq',
     'Horários das Áreas Comuns',
     'Piscina: 8h às 22h (todos os dias). Academia: 6h às 23h. Salão de Festas: 8h às 23h (sexta/sábado até meia-noite). Churrasqueira: 10h às 22h. Silêncio obrigatório: 22h às 8h.',
     '{"tipo": "horarios"}'
 );
+
+-- Configurações Iniciais do Condomínio Nogueira Martins
+INSERT INTO system_settings (condo_id, key, value) VALUES
+('b9a1a8c0-7f2a-4a7b-8c8a-9a9a9a9a9a9a', 'CONDO_NAME', 'Residencial Nogueira Martins'),
+('b9a1a8c0-7f2a-4a7b-8c8a-9a9a9a9a9a9a', 'AGENT_NAME', 'Syndra'),
+('b9a1a8c0-7f2a-4a7b-8c8a-9a9a9a9a9a9a', 'LLM_PROVIDER', 'OpenRouter'),
+('b9a1a8c0-7f2a-4a7b-8c8a-9a9a9a9a9a9a', 'LLM_MODEL', 'stepfun/step-3.5-flash:free');
+
+-- Usuário Admin Inicial (Senha padrão: admin123 - bcrypt hash abaixo)
+-- NOTA: O administrador deve alterar esta senha no primeiro login.
+INSERT INTO system_users (condo_id, username, password_hash, role, name) VALUES
+('b9a1a8c0-7f2a-4a7b-8c8a-9a9a9a9a9a9a', 'admin', '$2b$12$K7O0f.YQ3H0Jk.Y1z2z2z.X5h9f7h6g5f4e3d2c1b0a9f8e7d6c5', 'admin', 'Administrador Global');
+

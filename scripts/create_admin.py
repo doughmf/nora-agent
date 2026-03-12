@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.supabase.client import supabase
 
 def run():
-    print("=== Cadastro de Usuário do Painel NORA ===")
+    print("=== Cadastro de Usuário do Painel SYNDRA ===")
     nome = input("Nome completo: ")
     username = input("Username de login: ")
     senha = input("Senha nova: ")

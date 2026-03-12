@@ -1,4 +1,4 @@
-# 🏠 Nora Agent — IA do Residencial Nogueira Martins
+# 🏠 Syndra Agent — IA do Residencial Nogueira Martins
 
 > Agente de IA para gestão condominial via WhatsApp, com memória persistente no Supabase e deploy em VPS.
 
@@ -7,9 +7,9 @@
 ## 📁 Estrutura do Projeto
 
 ```
-nora-agent/
+syndra-agent/
 ├── specs/                          # Especificações técnicas (SandeClaw-style)
-│   ├── 01-persona.md               # Identidade e persona da Nora
+│   ├── 01-persona.md               # Identidade e persona da Syndra
 │   ├── 02-capabilities.md          # Capacidades e escopo de atuação
 │   ├── 03-knowledge-base.md        # Base de conhecimento e RAG
 │   ├── 04-flows.md                 # Fluxos de conversa e decisão
@@ -18,7 +18,7 @@ nora-agent/
 │   └── 07-deployment.md            # Deploy em VPS
 ├── src/
 │   ├── agent/                      # Núcleo do agente (LangChain/CrewAI)
-│   │   ├── nora.py                 # Agente principal
+│   │   ├── syndra.py                 # Agente principal
 │   │   ├── prompts.py              # System prompts
 │   │   ├── tools.py                # Ferramentas do agente
 │   │   └── memory.py               # Gerenciamento de memória
@@ -66,7 +66,7 @@ nora-agent/
 
 ```bash
 # 1. Clonar repositório
-git clone <repo> && cd nora-agent
+git clone <repo> && cd syndra-agent
 
 # 2. Configurar variáveis de ambiente
 cp config/.env.example .env && nano .env

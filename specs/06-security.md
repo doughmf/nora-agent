@@ -136,13 +136,13 @@ async def validate_message(phone: str, message: str) -> tuple[bool, str]:
 
 ## 5. POLÍTICA DE PRIVACIDADE DOS DADOS
 
-### O que a Nora coleta:
+### O que a Syndra coleta:
 - Número de WhatsApp (identificador único)
 - Nome e apartamento (fornecido pelo morador)
 - Histórico de conversas (para memória contextual)
 - Chamados de manutenção e reservas
 
-### O que a Nora NÃO coleta:
+### O que a Syndra NÃO coleta:
 - Documentos pessoais (CPF, RG)
 - Informações financeiras detalhadas
 - Fotos pessoais (apenas fotos de problemas de manutenção)

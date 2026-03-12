@@ -13,14 +13,14 @@
 │                                                         │
 │  ┌──────────────┐    ┌──────────────┐    ┌───────────┐ │
 │  │ Evolution    │    │  FastAPI     │    │  Redis    │ │
-│  │ API v2       │◄──►│  (Nora App)  │◄──►│  (Queue)  │ │
+│  │ API v2       │◄──►│  (Syndra App)  │◄──►│  (Queue)  │ │
 │  │ Port: 8080   │    │  Port: 8000  │    │  Port:    │ │
 │  └──────┬───────┘    └──────┬───────┘    │  6379     │ │
 │         │                   │            └───────────┘ │
 │         │            ┌──────▼───────┐                  │
 │  ┌──────▼───────┐    │   LangChain  │                  │
 │  │   Nginx      │    │   Agent      │                  │
-│  │  (Reverse    │    │   (Nora)     │                  │
+│  │  (Reverse    │    │   (Syndra)     │                  │
 │  │   Proxy)     │    └──────┬───────┘                  │
 │  │  Port: 443   │           │                          │
 │  └──────────────┘    ┌──────▼───────┐                  │
@@ -55,7 +55,7 @@ evolution-api:
     - DATABASE_ENABLED=true
     - DATABASE_CONNECTION_URI=postgresql://...
     - RABBITMQ_ENABLED=false
-    - WEBHOOK_GLOBAL_URL=https://nora.seu-dominio.com.br/webhook/whatsapp
+    - WEBHOOK_GLOBAL_URL=https://syndra.seu-dominio.com.br/webhook/whatsapp
     - WEBHOOK_GLOBAL_ENABLED=true
     - WEBHOOK_EVENTS_MESSAGES_UPDATE=true
   volumes:
@@ -82,7 +82,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
     
     message_data = payload.get("data", {})
     
-    # Ignorar mensagens enviadas pela própria Nora
+    # Ignorar mensagens enviadas pela própria Syndra
     if message_data.get("key", {}).get("fromMe"):
         return {"status": "own_message"}
     
@@ -109,9 +109,9 @@ async def process_incoming_message(data: dict):
     else:
         content = "[Mensagem não suportada]"
     
-    # Encaminhar ao agente Nora
-    from agent.nora import NoraAgent
-    agent = NoraAgent()
+    # Encaminhar ao agente Syndra
+    from agent.syndra import SyndraAgent
+    agent = SyndraAgent()
     response = await agent.process(phone=phone, message=content)
     
     # Enviar resposta
@@ -239,10 +239,10 @@ async def get_conversation_history(phone: str, limit: int = 10) -> list[dict]:
 
 ---
 
-## 4. NÚCLEO DO AGENTE NORA
+## 4. NÚCLEO DO AGENTE SYNDRA
 
 ```python
-# src/agent/nora.py
+# src/agent/syndra.py
 import os
 from openai import AsyncOpenAI # Usado para OpenRouter ou OpenAI
 from datetime import datetime
@@ -260,7 +260,7 @@ client = AsyncOpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
 )
 
-class NoraAgent:
+class SyndraAgent:
     def __init__(self):
         self.model = "anthropic/claude-3.5-sonnet" # Nome do modelo no OpenRouter
         self.max_tokens = 1024
@@ -361,7 +361,7 @@ SUPABASE_ANON_KEY=eyJ...
 # Evolution API (WhatsApp)
 EVOLUTION_API_URL=http://localhost:8080
 EVOLUTION_API_KEY=your-secret-key
-EVOLUTION_INSTANCE=nora-condominio
+EVOLUTION_INSTANCE=syndra-condominio
 
 # Redis
 REDIS_URL=redis://localhost:6379

@@ -4,10 +4,10 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.supabase.client import supabase
 from dotenv import load_dotenv
-
 load_dotenv()
+
+from src.supabase.client import supabase
 
 KEYS_TO_MIGRATE = [
     "CONDO_NAME",

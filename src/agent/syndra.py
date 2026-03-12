@@ -1,4 +1,4 @@
-# src/agent/nora.py
+# src/agent/syndra.py
 import os
 from openai import AsyncOpenAI # Usado para OpenRouter ou OpenAI
 from datetime import datetime
@@ -13,11 +13,12 @@ import json
 
 from src.api.settings_manager import get_setting
 
-class NoraAgent:
-    def __init__(self):
-        self.provider = get_setting("LLM_PROVIDER", "OpenRouter")
-        self.model = get_setting("LLM_MODEL", "stepfun/step-3.5-flash:free")
-        self.api_key = get_setting("LLM_API_KEY", os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY") or "")
+class SyndraAgent:
+    def __init__(self, condo_id: str):
+        self.condo_id = condo_id
+        self.provider = get_setting(condo_id, "LLM_PROVIDER", "OpenRouter")
+        self.model = get_setting(condo_id, "LLM_MODEL", "stepfun/step-3.5-flash:free")
+        self.api_key = get_setting(condo_id, "LLM_API_KEY", os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY") or "")
         
         base_url = "https://openrouter.ai/api/v1" if self.provider == "OpenRouter" else None
         
@@ -49,6 +50,7 @@ class NoraAgent:
         
         # 4. Construir prompt
         system_prompt = build_system_prompt(
+            condo_id=self.condo_id,
             resident=resident,
             knowledge_context=context_chunks,
             current_datetime=datetime.now().isoformat()
@@ -98,7 +100,7 @@ class NoraAgent:
             for tool_call in message.tool_calls:
                 name = tool_call.function.name
                 args = json.loads(tool_call.function.arguments)
-                result = await execute_tool(name, args)
+                result = await execute_tool(name, args, condo_id=self.condo_id)
                 messages.append({
                     "role": "tool", 
                     "tool_call_id": tool_call.id, 

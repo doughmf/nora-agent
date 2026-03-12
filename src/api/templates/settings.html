@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurações - NORA Painel</title>
+    <title>Configurações - SYNDRA Painel</title>
     <!-- Tailwind CSS (via CDN) e DaisyUI -->
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,7 +18,7 @@
     <div class="navbar custom-gradient text-primary-content shadow-lg px-8">
         <div class="flex-1">
             <a href="/admin/dashboard" class="text-xl font-bold flex items-center gap-2">
-                <i class="fa-solid fa-robot"></i> NORA Painel Admin
+                <i class="fa-solid fa-robot"></i> SYNDRA Painel Admin
             </a>
         </div>
         <div class="flex-none gap-2">
@@ -52,7 +52,7 @@
     <div class="alert alert-info shadow-lg">
         <div>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current flex-shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <span>Bem-vindo à edição dinâmica das configurações da NORA. Estas alterações entram em vigor na hora!</span>
+            <span>Bem-vindo à edição dinâmica das configurações da SYNDRA. Estas alterações entram em vigor na hora!</span>
         </div>
     </div>
 
@@ -73,7 +73,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="form-control mb-2 md:col-span-2 border-b border-base-200 pb-4">
                         <label class="label"><span class="label-text font-bold text-primary">Nome da Assistente de Inteligência Artificial</span></label>
-                        <input type="text" name="AGENT_NAME" value="{{ settings.get('AGENT_NAME', 'Nora') }}" placeholder="Ex: Nora, SíndicoBot..." class="input input-bordered input-primary max-w-sm font-semibold" required />
+                        <input type="text" name="AGENT_NAME" value="{{ settings.get('AGENT_NAME', 'Syndra') }}" placeholder="Ex: Syndra, SíndicoBot..." class="input input-bordered input-primary max-w-sm font-semibold" required />
                         <label class="label"><span class="label-text-alt text-gray-500">Como a IA deve se apresentar aos moradores no WhatsApp</span></label>
                     </div>
                     <div class="form-control">
@@ -167,7 +167,7 @@
                         </select>
                     </div>
                     <div class="form-control">
-                        <label class="label"><span class="label-text font-semibold">Chave PIX (NORA informa no pagamento)</span></label>
+                        <label class="label"><span class="label-text font-semibold">Chave PIX (SYNDRA informa no pagamento)</span></label>
                         <input type="text" name="PIX_CHAVE" value="{{ settings.get('PIX_CHAVE', '') }}" class="input input-bordered" />
                     </div>
                     <div class="form-control">
