@@ -137,6 +137,31 @@ TOOLS = [
             }
         }
     }
+    {
+        "type": "function",
+        "function": {
+            "name": "atualizar_perfil_morador",
+            "description": "Atualiza os dados de cadastro do morador e finaliza o onboarding. Use SEMPRE que o morador disser seu NOME e APARTAMENTO após sua saudação inicial.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "phone": {
+                        "type": "string",
+                        "description": "Número do telefone do morador (deve ser o mesmo que ele envia nas mensagens)"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Nome completo do morador"
+                    },
+                    "apartment": {
+                        "type": "string",
+                        "description": "Número do bloco e apartamento do morador (Ex: Bloco 1, Apt 03)"
+                    }
+                },
+                "required": ["phone", "name", "apartment"]
+            }
+        }
+    }
 ]
 
 
@@ -151,6 +176,7 @@ async def execute_tool(tool_name: str, tool_input: dict) -> dict:
         "criar_reserva": _criar_reserva,
         "notificar_sindico": _notificar_sindico,
         "consultar_status_chamado": _consultar_status_chamado,
+        "atualizar_perfil_morador": _atualizar_perfil_morador,
     }
     
     handler = handlers.get(tool_name)
@@ -161,6 +187,12 @@ async def execute_tool(tool_name: str, tool_input: dict) -> dict:
         return await handler(**tool_input)
     except Exception as e:
         return {"erro": f"Falha ao executar {tool_name}: {str(e)}"}
+
+
+async def _atualizar_perfil_morador(phone: str, name: str, apartment: str) -> dict:
+    """Invoca o backend para atualizar o morador."""
+    from src.supabase.client import update_resident_profile
+    return await update_resident_profile(phone, name, apartment)
 
 
 async def _buscar_regimento(query: str) -> dict:
