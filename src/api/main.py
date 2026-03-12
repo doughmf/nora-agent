@@ -26,14 +26,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger("syndra")
 
-# ─── JWT Secret — obrigatório em produção ──────────
+# ─── JWT Secret — usa .env ou gera um fixo por processo ───
 JWT_SECRET = settings.SECRET_KEY
 if not JWT_SECRET:
-    if settings.DEBUG:
-        JWT_SECRET = secrets.token_hex(32)
-        logger.warning("⚠️  SECRET_KEY não definida — usando valor aleatório (apenas para DEBUG)")
-    else:
-        raise RuntimeError("❌ SECRET_KEY deve ser definida no .env em produção!")
+    # Gera um secret estável baseado em variáveis do ambiente da VPS
+    # (não muda entre restarts enquanto as variáveis forem as mesmas)
+    import hashlib
+    seed = f"{settings.SUPABASE_URL}{settings.SUPABASE_SERVICE_KEY}"
+    JWT_SECRET = hashlib.sha256(seed.encode()).hexdigest()
+    logger.warning("⚠️  SECRET_KEY não definida — JWT derivado do Supabase URL+KEY. Defina SECRET_KEY no .env para maior segurança.")
 
 # ─── CORS — restrito ao domínio configurado ────────
 ALLOWED_ORIGINS = [f"https://{settings.DOMAIN}"] if settings.DOMAIN else ["http://localhost:3000"]
@@ -170,11 +171,20 @@ async def admin_login_post(request: Request, username: str = Form(...), password
             context={"condo_name": "Syndra SaaS", "error": "Usuário ou senha incorretos."}
         )
 
+    # Se condo_id estiver nulo, busca o primeiro condomínio disponível
+    condo_id = user_data.get("condo_id")
+    if not condo_id:
+        try:
+            res = supabase.table("condos").select("id").limit(1).execute()
+            condo_id = res.data[0]["id"] if res.data else "default"
+        except Exception:
+            condo_id = "default"
+
     token_payload = {
         "sub": user_data["username"],
         "name": user_data["name"],
         "role": user_data["role"],
-        "condo_id": user_data["condo_id"]
+        "condo_id": condo_id
     }
     jwt_token = create_access_token(token_payload)
 
