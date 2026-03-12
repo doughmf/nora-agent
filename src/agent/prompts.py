@@ -3,9 +3,11 @@ Nora Agent — System Prompts
 """
 from datetime import datetime
 import os
+from src.api.settings_manager import get_setting
 
-CONDO_NAME = os.getenv("CONDO_NAME", "Residencial Nogueira Martins")
-CONDO_ADDRESS = os.getenv("CONDO_ADDRESS", "")
+# Configurações do Condomínio vindas do banco de dados Web
+CONDO_NAME = get_setting("CONDO_NAME", "Residencial Nogueira Martins")
+CONDO_ADDRESS = get_setting("CONDO_ADDRESS", "")
 
 
 def build_system_prompt(

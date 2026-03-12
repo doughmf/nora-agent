@@ -363,10 +363,10 @@ async def _criar_reserva(espaco: str, data: str, periodo: str, num_convidados: i
 
 async def _notificar_sindico(assunto: str, nivel: str, detalhes: str) -> dict:
     """Notifica síndico via WhatsApp."""
-    import os
+    from src.api.settings_manager import get_setting
     from src.whatsapp.sender import send_message
     
-    sindico_phone = os.getenv("SINDICO_PHONE", "")
+    sindico_phone = get_setting("SINDICO_PHONE", "")
     
     emoji = {"URGENTE": "🚨", "IMPORTANTE": "⚠️", "INFORMATIVO": "ℹ️"}
     

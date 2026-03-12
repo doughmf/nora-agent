@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse
 from contextlib import asynccontextmanager
 import logging, os, secrets, jwt, bcrypt
 from datetime import datetime, timedelta
+from src.api.settings_manager import get_setting
 
 # ─── Logging ───────────────────────────────────────
 logging.basicConfig(
@@ -162,7 +163,7 @@ async def admin_login_page(request: Request):
     """Página Web de Login."""
     return templates.TemplateResponse(
         request=request, name="login.html",
-        context={"condo_name": os.getenv("CONDO_NAME", "Residencial Nogueira Martins")}
+        context={"condo_name": get_setting("CONDO_NAME", "Residencial Nogueira Martins")}
     )
 
 @app.post("/admin/login")
@@ -181,7 +182,7 @@ async def admin_login_post(request: Request, username: str = Form(...), password
         return templates.TemplateResponse(
             request=request, name="login.html",
             context={
-                "condo_name": os.getenv("CONDO_NAME", "Residencial Nogueira Martins"),
+                "condo_name": get_setting("CONDO_NAME", "Residencial Nogueira Martins"),
                 "error": "Usuário ou senha incorretos."
             }
         )
@@ -236,7 +237,7 @@ async def admin_dashboard(request: Request, user_session: dict = Depends(authent
     return templates.TemplateResponse(
         request=request, name="dashboard.html",
         context={
-            "condo_name": os.getenv("CONDO_NAME", "Residencial Nogueira Martins"),
+            "condo_name": get_setting("CONDO_NAME", "Residencial Nogueira Martins"),
             "stats": stats,
             "recent_residents": recent_res.data if hasattr(recent_res, 'data') else [],
             "recent_maintenance": recent_mnt.data if hasattr(recent_mnt, 'data') else [],
