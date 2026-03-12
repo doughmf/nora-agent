@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Painel NORA</title>
+    <!-- Tailwind CSS (via CDN) e DaisyUI -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .custom-gradient { background: linear-gradient(135deg, #0d9488, #0f766e); }
+        body { background-color: #f3f4f6; } /* bg-gray-100 */
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center">
+
+    <div class="card w-96 bg-base-100 shadow-2xl">
+        <div class="card-body">
+            <div class="flex justify-center mb-4">
+                <div class="w-16 h-16 rounded-full custom-gradient flex items-center justify-center text-white text-3xl shadow-lg">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+            </div>
+            
+            <h2 class="card-title justify-center text-2xl font-bold mb-2">Painel de Acesso</h2>
+            <p class="text-center text-gray-500 text-sm mb-6">{{ condo_name }}</p>
+
+            {% if error %}
+            <div role="alert" class="alert alert-error py-2 text-sm mb-4">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <form action="/admin/login" method="POST">
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text font-semibold">Usuário</span>
+                    </label>
+                    <label class="input input-bordered flex items-center gap-2">
+                        <i class="fa-solid fa-user text-gray-400"></i>
+                        <input type="text" name="username" class="grow" placeholder="Ex: admin" required />
+                    </label>
+                </div>
+
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold">Senha</span>
+                    </label>
+                    <label class="input input-bordered flex items-center gap-2">
+                        <i class="fa-solid fa-lock text-gray-400"></i>
+                        <input type="password" name="password" class="grow" placeholder="••••••••" required />
+                    </label>
+                </div>
+
+                <div class="form-control mt-2">
+                    <button type="submit" class="btn btn-primary custom-gradient text-white border-none w-full">Entrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>

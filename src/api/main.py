@@ -131,20 +131,57 @@ async def get_stats(x_admin_key: str = Header(None)):
     }
 
 # ─── Segurança do Painel ───────────────────────────
-security = HTTPBasic()
+from fastapi import Form
+from fastapi.responses import RedirectResponse
 
-def authenticate_admin(credentials: HTTPBasicCredentials = Depends(security)):
-    """Verifica usuário e senha do painel."""
-    correct_username = secrets.compare_digest(credentials.username, os.getenv("ADMIN_USER", "admin"))
-    correct_password = secrets.compare_digest(credentials.password, os.getenv("ADMIN_PASS", "nora2026"))
+def authenticate_admin(request: Request):
+    """Verifica se o usuário possui a sessão ativa nos cookies."""
+    session_token = request.cookies.get("nora_admin_session")
+    
+    # Validação simples (geralmente isso é feito com JWT ou db_sessions)
+    expected_token = secrets.token_hex(16) if not hasattr(app, "state_session") else app.state_session
+    
+    if not session_token or session_token != getattr(app, "state_session", ""):
+        # Se não autenticado, levanta erro ou retorna redirect. Iremos pegar isso e direcionar pro login.
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Não autorizado")
+    return True
+
+@app.get("/admin/login", response_class=HTMLResponse)
+async def admin_login_page(request: Request):
+    """Página Web de Login."""
+    return templates.TemplateResponse(
+        request=request, name="login.html",
+        context={"condo_name": os.getenv("CONDO_NAME", "Residencial Nogueira Martins")}
+    )
+
+@app.post("/admin/login")
+async def admin_login_post(request: Request, username: str = Form(...), password: str = Form(...)):
+    """Recebe as credenciais do form e cria a sessão."""
+    correct_username = secrets.compare_digest(username, os.getenv("ADMIN_USER", "admin"))
+    correct_password = secrets.compare_digest(password, os.getenv("ADMIN_PASS", "nora2026"))
     
     if not (correct_username and correct_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuário ou senha incorretos",
-            headers={"WWW-Authenticate": "Basic"},
+        return templates.TemplateResponse(
+            request=request, name="login.html",
+            context={
+                "condo_name": os.getenv("CONDO_NAME", "Residencial Nogueira Martins"),
+                "error": "Usuário ou senha incorretos."
+            }
         )
-    return credentials.username
+    
+    # Gera um token de sessão simples em memória (reinicia quando o server cai)
+    session_token = secrets.token_hex(32)
+    app.state_session = session_token
+    
+    # Redireciona e seta o cookie
+    response = RedirectResponse(url="/admin/dashboard", status_code=status.HTTP_302_FOUND)
+    response.set_cookie(
+        key="nora_admin_session",
+        value=session_token,
+        httponly=True,
+        max_age=3600 * 24 # 1 dia
+    )
+    return response
 
 @app.get("/admin/dashboard", response_class=HTMLResponse)
 async def admin_dashboard(request: Request, _admin: str = Depends(authenticate_admin)):
@@ -187,10 +224,8 @@ async def admin_dashboard(request: Request, _admin: str = Depends(authenticate_a
 
 @app.get("/admin/logout")
 async def admin_logout():
-    """Força o encerramento da sessão simulando um erro 401."""
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Sessão encerrada com sucesso.",
-        headers={"WWW-Authenticate": "Basic"},
-    )
+    """Encerra a sessão limpando o cookie."""
+    response = RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+    response.delete_cookie("nora_admin_session")
+    return response
 
