@@ -61,9 +61,16 @@ def authenticate_admin(request: Request) -> dict:
     except jwt.PyJWTError:
         raise HTTPException(status_code=302, headers={"Location": "/admin/login"})
 
-def _set_session_cookie(response, token: str):
+def _is_request_https(request: Request) -> bool:
+    forwarded_proto = request.headers.get("x-forwarded-proto", "")
+    if forwarded_proto:
+        return forwarded_proto.split(",")[0].strip().lower() == "https"
+    return request.url.scheme == "https"
+
+def _set_session_cookie(request: Request, response, token: str):
+    secure_cookie = (not settings.DEBUG) and _is_request_https(request)
     response.set_cookie(key="syndra_admin_session", value=token,
-        httponly=True, secure=not settings.DEBUG, samesite="lax", max_age=3600 * 24)
+        httponly=True, secure=secure_cookie, samesite="lax", max_age=3600 * 24)
 
 def _get_all_condos() -> list:
     try:
@@ -134,7 +141,7 @@ async def admin_login_post(request: Request, username: str = Form(...), password
     # Super admin sem condo → tela de condomínios; demais → dashboard
     redirect_url = "/admin/condos" if (role == "super_admin" and not condo_id) else "/admin/dashboard"
     response = RedirectResponse(url=redirect_url, status_code=302)
-    _set_session_cookie(response, token)
+    _set_session_cookie(request, response, token)
     return response
 
 @app.get("/admin/logout")
@@ -170,7 +177,7 @@ async def admin_select_condo(request: Request, condo_id: str = Form(...), user_s
     new_payload.pop("exp", None)
     token = create_access_token(new_payload)
     response = RedirectResponse(url="/admin/dashboard", status_code=302)
-    _set_session_cookie(response, token)
+    _set_session_cookie(request, response, token)
     return response
 
 @app.get("/admin/condos/new", response_class=HTMLResponse)

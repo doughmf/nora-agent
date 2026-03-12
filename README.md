@@ -1,4 +1,4 @@
-# 🏠 Syndra Agent — IA do Residencial Nogueira Martins
+# 🏠 Syndra Agent — IA para Condomínios
 
 > Agente de IA para gestão condominial via WhatsApp, com memória persistente no Supabase e deploy em VPS.
 

@@ -17,7 +17,7 @@ def build_system_prompt(
     """Constrói o system prompt dinâmico para cada interação."""
     
     # Carregar configurações do condomínio específico
-    condo_name = get_setting(condo_id, "CONDO_NAME", "Residencial Nogueira Martins")
+    condo_name = get_setting(condo_id, "CONDO_NAME", "Condomínio Exemplo")
     agent_name = get_setting(condo_id, "AGENT_NAME", "Syndra")
     
     if not current_datetime:

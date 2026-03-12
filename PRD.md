@@ -1,6 +1,6 @@
 # PRD — Syndra Agent
 ## Product Requirements Document
-**Produto:** Syndra — IA de Gestão do Residencial Nogueira Martins  
+**Produto:** Syndra — IA de Gestão Condominial  
 **Versão:** 1.0  
 **Data:** Março 2025  
 **Status:** Em Desenvolvimento
@@ -234,4 +234,4 @@ O produto estará pronto para go-live quando:
 
 ---
 
-*Documento mantido pela equipe de desenvolvimento do Residencial Nogueira Martins.*
+*Documento mantido pela equipe de desenvolvimento da Syndra.*
