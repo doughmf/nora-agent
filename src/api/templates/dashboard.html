@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel NORA - Condomínio</title>
+    <!-- Tailwind CSS (via CDN) e DaisyUI para UI rápida -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .custom-gradient { background: linear-gradient(135deg, #0d9488, #0f766e); }
+    </style>
+</head>
+<body class="bg-base-200 min-h-screen">
+    
+    <!-- Navbar -->
+    <div class="navbar custom-gradient text-primary-content shadow-lg px-8">
+        <div class="flex-1">
+            <a class="text-xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-robot"></i> NORA Painel Admin
+            </a>
+        </div>
+        <div class="flex-none gap-2">
+            <span class="text-sm font-semibold">{{ condo_name }}</span>
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar border border-white">
+                    <div class="w-10 rounded-full flex items-center justify-center text-xl bg-white text-teal-700">
+                        <i class="fa-solid fa-user-gear pt-2 pl-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto p-6 mt-4">
+        
+        <!-- Header & Stats -->
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-base-content">Visão Geral</h1>
+            <div class="text-sm text-gray-500">Última atualização: <span id="last-update">Hoje</span></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <!-- Stat 1 -->
+            <div class="stat bg-base-100 shadow rounded-box">
+                <div class="stat-figure text-primary">
+                    <i class="fa-solid fa-users text-3xl"></i>
+                </div>
+                <div class="stat-title">Moradores Cadastrados</div>
+                <div class="stat-value text-primary">{{ stats.residents_count }}</div>
+                <div class="stat-desc">Acesso via WhatsApp</div>
+            </div>
+            
+            <!-- Stat 2 -->
+            <div class="stat bg-base-100 shadow rounded-box">
+                <div class="stat-figure text-secondary">
+                    <i class="fa-regular fa-comments text-3xl"></i>
+                </div>
+                <div class="stat-title">Mensagens Trocadas</div>
+                <div class="stat-value text-secondary">{{ stats.messages_count }}</div>
+                <div class="stat-desc">Interações da IA</div>
+            </div>
+            
+            <!-- Stat 3 -->
+            <div class="stat bg-base-100 shadow rounded-box">
+                <div class="stat-figure text-warning">
+                    <i class="fa-solid fa-screwdriver-wrench text-3xl"></i>
+                </div>
+                <div class="stat-title">Chamados (Abertos)</div>
+                <div class="stat-value text-warning">{{ stats.open_maintenance }}</div>
+                <div class="stat-desc">Manutenção e Reparos</div>
+            </div>
+
+            <!-- Stat 4 -->
+            <div class="stat bg-base-100 shadow rounded-box">
+                <div class="stat-figure text-accent">
+                    <i class="fa-regular fa-calendar-check text-3xl"></i>
+                </div>
+                <div class="stat-title">Reservas Pendentes</div>
+                <div class="stat-value text-accent">{{ stats.pending_bookings }}</div>
+                <div class="stat-desc">Espaços do Condomínio</div>
+            </div>
+        </div>
+
+        <!-- Tabelas de Dados -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- Residents Table -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title mb-4"><i class="fa-solid fa-address-book text-gray-400"></i> Últimos Moradores</h2>
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra w-full text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Apto/Bloco</th>
+                                    <th>Status</th>
+                                    <th>Telefone</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for res in recent_residents %}
+                                <tr>
+                                    <td class="font-bold">{{ res.name or 'Pendente' }}</td>
+                                    <td>{{ res.apartment or '-' }} (Bl {{ res.block or '-' }})</td>
+                                    <td>
+                                        {% if res.profile.onboarding_complete %}
+                                            <div class="badge badge-success gap-1 text-xs"><i class="fa-solid fa-check"></i> Cadastrado</div>
+                                        {% else %}
+                                            <div class="badge badge-warning gap-1 text-xs"><i class="fa-regular fa-clock"></i> Onboarding</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-gray-500">{{ res.whatsapp_phone }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="text-center py-4 text-gray-500">Nenhum morador encontrado.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manutenção Table -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title mb-4"><i class="fa-solid fa-hammer text-gray-400"></i> Chamados de Manutenção Recentes</h2>
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra w-full text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Protocolo</th>
+                                    <th>Tipo</th>
+                                    <th>Local</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for req in recent_maintenance %}
+                                <tr>
+                                    <td class="font-mono text-xs">{{ req.protocol }}</td>
+                                    <td>{{ req.type }}</td>
+                                    <td>{{ req.location }}</td>
+                                    <td>
+                                        {% if req.status == 'aberto' %}
+                                            <span class="badge badge-error gap-1 text-xs px-2 py-3"><i class="fa-solid fa-circle-exclamation"></i> Aberto</span>
+                                        {% elif req.status == 'em_andamento' %}
+                                            <span class="badge badge-warning gap-1 text-xs px-2 py-3"><i class="fa-solid fa-person-digging"></i> Em Andamento</span>
+                                        {% else %}
+                                            <span class="badge badge-ghost gap-1 text-xs px-2 py-3">Concluído</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="text-center py-4 text-gray-500">Nenhum chamado pendente encontrado.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('last-update').innerText = new Date().toLocaleString('pt-BR');
+    </script>
+</body>
+</html>

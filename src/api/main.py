@@ -2,8 +2,11 @@
 Nora Agent — API Principal
 Residencial Nogueira Martins
 """
-from fastapi import FastAPI, Request, BackgroundTasks, HTTPException, Header
+from fastapi import FastAPI, Request, BackgroundTasks, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 from contextlib import asynccontextmanager
 import logging, os
 from datetime import datetime
@@ -37,7 +40,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─── Health Check ──────────────────────────────────
 @app.get("/health")
 async def health():
     return {
@@ -45,6 +47,11 @@ async def health():
         "service": "Nora Agent",
         "timestamp": datetime.now().isoformat()
     }
+
+# ─── Configuração Frontend Web ─────────────────────
+# Templates
+templates_dir = os.path.join(os.path.dirname(__file__), "templates")
+templates = Jinja2Templates(directory=templates_dir)
 
 # ─── Webhook WhatsApp ──────────────────────────────
 @app.post("/webhook/whatsapp")
@@ -121,3 +128,42 @@ async def get_stats(x_admin_key: str = Header(None)):
         "status": "ok",
         "message": "Estatísticas em desenvolvimento"
     }
+
+@app.get("/admin/dashboard", response_class=HTMLResponse)
+async def admin_dashboard(request: Request):
+    """Página Web do Painel Admin."""
+    
+    # Busca real do Supabase
+    from src.supabase.client import supabase
+    try:
+        # Estatísticas
+        residents = supabase.table("residents").select("id", count="exact").execute()
+        messages = supabase.table("conversations").select("id", count="exact").execute()
+        mnt_open = supabase.table("maintenance_requests").select("id", count="exact").eq("status", "aberto").execute()
+        res_pend = supabase.table("space_bookings").select("id", count="exact").eq("status", "pendente").execute()
+        
+        # Últimas listagens
+        recent_res = supabase.table("residents").select("*").order("created_at", desc=True).limit(5).execute()
+        recent_mnt = supabase.table("maintenance_requests").select("*").order("created_at", desc=True).limit(5).execute()
+        
+        stats = {
+            "residents_count": residents.count or 0,
+            "messages_count": messages.count or 0,
+            "open_maintenance": mnt_open.count or 0,
+            "pending_bookings": res_pend.count or 0
+        }
+    except Exception as e:
+        logger.error(f"Erro ao carregar dashboard: {e}")
+        stats = {"residents_count": 0, "messages_count": 0, "open_maintenance": 0, "pending_bookings": 0}
+        recent_res = type('obj', (object,), {'data': []})
+        recent_mnt = type('obj', (object,), {'data': []})
+
+    return templates.TemplateResponse(
+        request=request, name="dashboard.html",
+        context={
+            "condo_name": os.getenv("CONDO_NAME", "Residencial Nogueira Martins"),
+            "stats": stats,
+            "recent_residents": recent_res.data if hasattr(recent_res, 'data') else [],
+            "recent_maintenance": recent_mnt.data if hasattr(recent_mnt, 'data') else []
+        }
+    )
