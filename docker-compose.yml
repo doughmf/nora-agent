@@ -31,6 +31,9 @@ services:
     volumes:
       - knowledge_docs:/app/knowledge_docs
       - logs:/app/logs
+    networks:
+      - default
+      - n8n_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -41,3 +44,9 @@ services:
 volumes:
   knowledge_docs:
   logs:
+
+networks:
+  default:
+  n8n_network:
+    external: true
+    name: ${N8N_NETWORK:-n8n_default}
