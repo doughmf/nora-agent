@@ -47,8 +47,26 @@ async def health():
     return {
         "status": "ok",
         "service": "Syndra Agent",
-        "version": "1.1.0-tenant-fix",
+        "version": "1.1.1-debug",
         "timestamp": datetime.now().isoformat()
+    }
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    return HTMLResponse(
+        content=f"<h1>Error 500 - Debug Info</h1><pre>{traceback.format_exc()}</pre>",
+        status_code=500
+    )
+
+@app.get("/admin/debug-info")
+async def debug_info():
+    import os
+    return {
+        "cwd": os.getcwd(),
+        "files_in_api": os.listdir("src/api") if os.path.exists("src/api") else [],
+        "templates_exist": os.path.exists("src/api/templates/login.html"),
+        "env_vars": [k for k in os.environ.keys() if "KEY" not in k and "TOKEN" not in k and "PASS" not in k]
     }
 
 # ─── Configuração Frontend Web ─────────────────────
