@@ -2,13 +2,14 @@
 Nora Agent — API Principal
 Residencial Nogueira Martins
 """
-from fastapi import FastAPI, Request, BackgroundTasks, HTTPException, Header, Depends
+from fastapi import FastAPI, Request, BackgroundTasks, HTTPException, Header, Depends, status
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from contextlib import asynccontextmanager
-import logging, os
+import logging, os, secrets
 from datetime import datetime
 
 # ─── Logging ───────────────────────────────────────
@@ -129,9 +130,25 @@ async def get_stats(x_admin_key: str = Header(None)):
         "message": "Estatísticas em desenvolvimento"
     }
 
+# ─── Segurança do Painel ───────────────────────────
+security = HTTPBasic()
+
+def authenticate_admin(credentials: HTTPBasicCredentials = Depends(security)):
+    """Verifica usuário e senha do painel."""
+    correct_username = secrets.compare_digest(credentials.username, os.getenv("ADMIN_USER", "admin"))
+    correct_password = secrets.compare_digest(credentials.password, os.getenv("ADMIN_PASS", "nora2026"))
+    
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuário ou senha incorretos",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
 @app.get("/admin/dashboard", response_class=HTMLResponse)
-async def admin_dashboard(request: Request):
-    """Página Web do Painel Admin."""
+async def admin_dashboard(request: Request, _admin: str = Depends(authenticate_admin)):
+    """Página Web do Painel Admin (Protegida)."""
     
     # Busca real do Supabase
     from src.supabase.client import supabase
@@ -167,3 +184,13 @@ async def admin_dashboard(request: Request):
             "recent_maintenance": recent_mnt.data if hasattr(recent_mnt, 'data') else []
         }
     )
+
+@app.get("/admin/logout")
+async def admin_logout():
+    """Força o encerramento da sessão simulando um erro 401."""
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Sessão encerrada com sucesso.",
+        headers={"WWW-Authenticate": "Basic"},
+    )
+
