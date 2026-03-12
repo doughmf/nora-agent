@@ -1,14 +1,12 @@
 # scripts/create_admin.py
 import os
 import sys
-from passlib.context import CryptContext
+import bcrypt
 
 # Adicionar pasta pai ao path para importar config
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.supabase.client import supabase
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def run():
     print("=== Cadastro de Usuário do Painel NORA ===")
@@ -25,7 +23,9 @@ def run():
     niveis = {"1": "admin", "2": "sindico", "3": "colaborador"}
     role = niveis.get(papel_escolhido, "colaborador")
 
-    hashed_password = pwd_context.hash(senha)
+    # Hasheia a senha com o bcrypt nativo
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(senha.encode('utf-8'), salt).decode('utf-8')
 
     print(f"\nCriando usuário '{username}' com a função de '{role}'...")
 

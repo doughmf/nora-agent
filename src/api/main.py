@@ -9,9 +9,8 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from contextlib import asynccontextmanager
-import logging, os, secrets, jwt
+import logging, os, secrets, jwt, bcrypt
 from datetime import datetime, timedelta
-from passlib.context import CryptContext
 
 # ─── Logging ───────────────────────────────────────
 logging.basicConfig(
@@ -136,7 +135,6 @@ from fastapi import Form
 from fastapi.responses import RedirectResponse
 from src.supabase.client import supabase
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 JWT_SECRET = os.getenv("SECRET_KEY", secrets.token_hex(32))
 
 def create_access_token(data: dict):
@@ -179,7 +177,7 @@ async def admin_login_post(request: Request, username: str = Form(...), password
         logger.error(f"Erro ao buscar usuário: {e}")
         user_data = None
         
-    if not user_data or not pwd_context.verify(password, user_data["password_hash"]):
+    if not user_data or not bcrypt.checkpw(password.encode('utf-8'), user_data["password_hash"].encode('utf-8')):
         return templates.TemplateResponse(
             request=request, name="login.html",
             context={
