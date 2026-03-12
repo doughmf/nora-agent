@@ -22,7 +22,10 @@
             </a>
         </div>
         <div class="flex-none gap-2">
-            <span class="text-sm font-semibold">{{ condo_name }}</span>
+            <div class="text-right mr-2 flex flex-col justify-center">
+                <span class="text-sm font-bold leading-tight">{{ user.name }}</span>
+                <span class="text-xs text-teal-200 leading-tight uppercase">{{ user.role }}</span>
+            </div>
             <div class="dropdown dropdown-end">
                 <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar border border-white">
                     <div class="w-10 rounded-full flex items-center justify-center text-xl bg-white text-teal-700">
@@ -47,6 +50,7 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {% if user.role != 'colaborador' %}
             <!-- Stat 1 -->
             <div class="stat bg-base-100 shadow rounded-box">
                 <div class="stat-figure text-primary">
@@ -66,6 +70,7 @@
                 <div class="stat-value text-secondary">{{ stats.messages_count }}</div>
                 <div class="stat-desc">Interações da IA</div>
             </div>
+            {% endif %}
             
             <!-- Stat 3 -->
             <div class="stat bg-base-100 shadow rounded-box">
@@ -91,6 +96,7 @@
         <!-- Tabelas de Dados -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
+            {% if user.role != 'colaborador' %}
             <!-- Residents Table -->
             <div class="card bg-base-100 shadow-xl">
                 <div class="card-body">
@@ -127,6 +133,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
 
             <!-- Manutenção Table -->
             <div class="card bg-base-100 shadow-xl">

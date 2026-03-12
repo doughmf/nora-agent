@@ -9,8 +9,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from contextlib import asynccontextmanager
-import logging, os, secrets
-from datetime import datetime
+import logging, os, secrets, jwt
+from datetime import datetime, timedelta
+from passlib.context import CryptContext
 
 # ─── Logging ───────────────────────────────────────
 logging.basicConfig(
@@ -133,18 +134,30 @@ async def get_stats(x_admin_key: str = Header(None)):
 # ─── Segurança do Painel ───────────────────────────
 from fastapi import Form
 from fastapi.responses import RedirectResponse
+from src.supabase.client import supabase
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+JWT_SECRET = os.getenv("SECRET_KEY", secrets.token_hex(32))
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=1)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, JWT_SECRET, algorithm="HS256")
 
 def authenticate_admin(request: Request):
-    """Verifica se o usuário possui a sessão ativa nos cookies."""
+    """Verifica se o usuário possui sessão JWT ativa nos cookies."""
     session_token = request.cookies.get("nora_admin_session")
     
-    # Validação simples (geralmente isso é feito com JWT ou db_sessions)
-    expected_token = secrets.token_hex(16) if not hasattr(app, "state_session") else app.state_session
-    
-    if not session_token or session_token != getattr(app, "state_session", ""):
-        # Se não autenticado, levanta erro ou retorna redirect. Iremos pegar isso e direcionar pro login.
+    if not session_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Não autorizado")
-    return True
+    
+    try:
+        payload = jwt.decode(session_token, JWT_SECRET, algorithms=["HS256"])
+        request.state.user = payload
+        return payload
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sessão inválida ou expirada")
 
 @app.get("/admin/login", response_class=HTMLResponse)
 async def admin_login_page(request: Request):
@@ -156,11 +169,17 @@ async def admin_login_page(request: Request):
 
 @app.post("/admin/login")
 async def admin_login_post(request: Request, username: str = Form(...), password: str = Form(...)):
-    """Recebe as credenciais do form e cria a sessão."""
-    correct_username = secrets.compare_digest(username, os.getenv("ADMIN_USER", "admin"))
-    correct_password = secrets.compare_digest(password, os.getenv("ADMIN_PASS", "nora2026"))
+    """Busca o usuário no banco, valida e cria sessão JWT."""
     
-    if not (correct_username and correct_password):
+    # Validação contra o banco de dados
+    try:
+        res = supabase.table("system_users").select("*").eq("username", username).execute()
+        user_data = res.data[0] if res.data else None
+    except Exception as e:
+        logger.error(f"Erro ao buscar usuário: {e}")
+        user_data = None
+        
+    if not user_data or not pwd_context.verify(password, user_data["password_hash"]):
         return templates.TemplateResponse(
             request=request, name="login.html",
             context={
@@ -169,22 +188,26 @@ async def admin_login_post(request: Request, username: str = Form(...), password
             }
         )
     
-    # Gera um token de sessão simples em memória (reinicia quando o server cai)
-    session_token = secrets.token_hex(32)
-    app.state_session = session_token
+    # Assina JWT contendo username, nome e role (admin, sindico, colaborador)
+    token_payload = {
+        "sub": user_data["username"],
+        "name": user_data["name"],
+        "role": user_data["role"]
+    }
+    jwt_token = create_access_token(token_payload)
     
     # Redireciona e seta o cookie
     response = RedirectResponse(url="/admin/dashboard", status_code=status.HTTP_302_FOUND)
     response.set_cookie(
         key="nora_admin_session",
-        value=session_token,
+        value=jwt_token,
         httponly=True,
         max_age=3600 * 24 # 1 dia
     )
     return response
 
 @app.get("/admin/dashboard", response_class=HTMLResponse)
-async def admin_dashboard(request: Request, _admin: str = Depends(authenticate_admin)):
+async def admin_dashboard(request: Request, user_session: dict = Depends(authenticate_admin)):
     """Página Web do Painel Admin (Protegida)."""
     
     # Busca real do Supabase
@@ -218,7 +241,8 @@ async def admin_dashboard(request: Request, _admin: str = Depends(authenticate_a
             "condo_name": os.getenv("CONDO_NAME", "Residencial Nogueira Martins"),
             "stats": stats,
             "recent_residents": recent_res.data if hasattr(recent_res, 'data') else [],
-            "recent_maintenance": recent_mnt.data if hasattr(recent_mnt, 'data') else []
+            "recent_maintenance": recent_mnt.data if hasattr(recent_mnt, 'data') else [],
+            "user": user_session
         }
     )
 
