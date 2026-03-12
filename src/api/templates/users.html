@@ -156,8 +156,9 @@
                     <div class="form-control">
                         <label class="label"><span class="label-text font-semibold">Perfil *</span></label>
                         <select name="role" class="select select-bordered" onchange="toggleCondoSelect(this)">
-                            <option value="condo_admin">Admin Condomínio</option>
-                            <option value="admin">Super Admin</option>
+                            {% for r in assignable_roles %}
+                            <option value="{{ r.value }}">{{ r.label }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div class="form-control" id="condo-select-wrapper">
@@ -198,8 +199,9 @@
                     <div class="form-control">
                         <label class="label"><span class="label-text font-semibold">Perfil *</span></label>
                         <select id="edit-role" name="role" class="select select-bordered" onchange="toggleEditCondoSelect(this)">
-                            <option value="condo_admin">Admin Condomínio</option>
-                            <option value="admin">Super Admin</option>
+                            {% for r in assignable_roles %}
+                            <option value="{{ r.value }}">{{ r.label }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div class="form-control col-span-2" id="edit-condo-select-wrapper">
