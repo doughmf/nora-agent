@@ -34,6 +34,9 @@
                 </div>
                 <!-- Menu Dropdown do usuário -->
                 <ul tabindex="0" class="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52 text-base-content">
+                    {% if user.role == 'admin' %}
+                    <li><a href="/admin/settings" class="justify-between">Configurações</a></li>
+                    {% endif %}
                     <li><a href="/admin/logout" class="text-error"><i class="fa-solid fa-right-from-bracket"></i> Sair (Logout)</a></li>
                 </ul>
             </div>

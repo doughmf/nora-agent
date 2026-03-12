@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="p-6 pb-20 max-w-4xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold">Configurações Base (.env)</h1>
+        <a href="/admin/dashboard" class="btn btn-outline btn-sm">Voltar ao Dashboard</a>
+    </div>
+    
+    <div class="alert alert-info shadow-lg">
+        <div>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current flex-shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>Bem-vindo à edição dinâmica das configurações da NORA. Estas alterações entram em vigor na hora!</span>
+        </div>
+    </div>
+
+    {% if message %}
+    <div class="alert alert-success shadow-lg">
+        <div>
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 w-6 h-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>{{ message }}</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="POST" action="/admin/settings" class="space-y-6">
+        <!-- BLOCO 1: Condomínio -->
+        <div class="card bg-base-100 shadow-xl border border-base-200">
+            <div class="card-body">
+                <h2 class="card-title text-primary"><i class="fas fa-building mr-2"></i> Identificação do Condomínio</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Nome do Condomínio</span></label>
+                        <input type="text" name="CONDO_NAME" value="{{ settings.get('CONDO_NAME', '') }}" class="input input-bordered" />
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">CNPJ</span></label>
+                        <input type="text" name="CONDO_CNPJ" value="{{ settings.get('CONDO_CNPJ', '') }}" class="input input-bordered" />
+                    </div>
+                    <div class="form-control md:col-span-2">
+                        <label class="label"><span class="label-text font-semibold">Endereço Completo</span></label>
+                        <input type="text" name="CONDO_ADDRESS" value="{{ settings.get('CONDO_ADDRESS', '') }}" class="input input-bordered" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BLOCO 2: Contatos Chave -->
+        <div class="card bg-base-100 shadow-xl border border-base-200">
+            <div class="card-body">
+                <h2 class="card-title text-secondary"><i class="fas fa-address-book mr-2"></i> Contatos da Equipe (Em formato WhatsApp ex: 55119000000)</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Nome do Síndico(a)</span></label>
+                        <input type="text" name="SINDICO_NAME" value="{{ settings.get('SINDICO_NAME', '') }}" class="input input-bordered" />
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Telefone Síndico(a)</span></label>
+                        <input type="text" name="SINDICO_PHONE" value="{{ settings.get('SINDICO_PHONE', '') }}" class="input input-bordered" />
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Nome do Zelador</span></label>
+                        <input type="text" name="ZELADOR_NAME" value="{{ settings.get('ZELADOR_NAME', '') }}" class="input input-bordered" />
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Telefone Zelador(a) / Manutenção</span></label>
+                        <input type="text" name="ZELADOR_PHONE" value="{{ settings.get('ZELADOR_PHONE', '') }}" class="input input-bordered" />
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Telefone Portaria (Em caso de emergência)</span></label>
+                        <input type="text" name="PORTARIA_PHONE" value="{{ settings.get('PORTARIA_PHONE', '') }}" class="input input-bordered" />
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Telefone Administradora Faturamento</span></label>
+                        <input type="text" name="ADMINISTRADORA_PHONE" value="{{ settings.get('ADMINISTRADORA_PHONE', '') }}" class="input input-bordered" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BLOCO 3: Preços e Pagamentos -->
+        <div class="card bg-base-100 shadow-xl border border-base-200">
+            <div class="card-body">
+                <h2 class="card-title text-accent"><i class="fas fa-coins mr-2"></i> Reservas e Tesouraria</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Preço Salão (Noturno - R$)</span></label>
+                        <input type="number" name="SALAO_PRECO_NOITE" value="{{ settings.get('SALAO_PRECO_NOITE', '') }}" class="input input-bordered" />
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Preço Salão (Diurno - R$)</span></label>
+                        <input type="number" name="SALAO_PRECO_DIA" value="{{ settings.get('SALAO_PRECO_DIA', '') }}" class="input input-bordered" />
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Preço Churrasqueira (R$)</span></label>
+                        <input type="number" name="CHURRASQUEIRA_PRECO" value="{{ settings.get('CHURRASQUEIRA_PRECO', '') }}" class="input input-bordered" />
+                    </div>
+                    <div class="form-control md:col-span-2">
+                        <label class="label"><span class="label-text font-semibold">Chave PIX (NORA informa no pagamento)</span></label>
+                        <input type="text" name="PIX_CHAVE" value="{{ settings.get('PIX_CHAVE', '') }}" class="input input-bordered" />
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Nome Recebedor (PIX)</span></label>
+                        <input type="text" name="PIX_NOME" value="{{ settings.get('PIX_NOME', '') }}" class="input input-bordered" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end pt-4 pb-8">
+            <button type="submit" class="btn btn-primary px-8">Salvar Configurações</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

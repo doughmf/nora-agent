@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse
 from contextlib import asynccontextmanager
 import logging, os, secrets, jwt, bcrypt
 from datetime import datetime, timedelta
-from src.api.settings_manager import get_setting
+from src.api.settings_manager import get_setting, set_setting
 
 # ─── Logging ───────────────────────────────────────
 logging.basicConfig(
@@ -245,10 +245,59 @@ async def admin_dashboard(request: Request, user_session: dict = Depends(authent
         }
     )
 
+@app.get("/admin/settings", response_class=HTMLResponse)
+async def admin_settings_page(request: Request, user_session: dict = Depends(authenticate_admin)):
+    """Página Web de Configurações (exclusiva para admins)."""
+    
+    if user_session.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Acesso exclusivo para administradores.")
+        
+    # Carrega as configurações principais para alimentar os campos baseados na lista original    
+    keys_to_load = [
+        "CONDO_NAME", "CONDO_CNPJ", "CONDO_ADDRESS", "SINDICO_NAME", "SINDICO_PHONE",
+        "ZELADOR_NAME", "ZELADOR_PHONE", "PORTARIA_PHONE", "ADMINISTRADORA_PHONE",
+        "SALAO_PRECO_NOITE", "SALAO_PRECO_DIA", "CHURRASQUEIRA_PRECO", "PIX_CHAVE", "PIX_NOME"
+    ]
+    
+    current_settings = {k: get_setting(k) for k in keys_to_load}
+    
+    return templates.TemplateResponse(
+        request=request, name="settings.html",
+        context={
+            "condo_name": get_setting("CONDO_NAME", "Residencial Nogueira Martins"),
+            "user": user_session,
+            "settings": current_settings
+        }
+    )
+
+@app.post("/admin/settings", response_class=HTMLResponse)
+async def admin_settings_save(request: Request, user_session: dict = Depends(authenticate_admin)):
+    """Processa o salvamento do formulário de configs."""
+    
+    if user_session.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Acesso exclusivo para administradores.")
+        
+    form_data = await request.form()
+    
+    for key, value in form_data.items():
+        set_setting(key, str(value))
+        
+    # Recarrega para mostrar form atualizado
+    current_settings = {k: get_setting(k) for k in form_data.keys()}
+    
+    return templates.TemplateResponse(
+        request=request, name="settings.html",
+        context={
+            "condo_name": get_setting("CONDO_NAME", "Residencial Nogueira Martins"),
+            "user": user_session,
+            "settings": current_settings,
+            "message": "Configurações Globais atualizadas com sucesso!"
+        }
+    )
+
 @app.get("/admin/logout")
 async def admin_logout():
     """Encerra a sessão limpando o cookie."""
-    response = RedirectResponse(url="/admin/login", status_code=status.HTTP_302_FOUND)
+    response = RedirectResponse(url="/admin/login", status_code=303)
     response.delete_cookie("nora_admin_session")
     return response
-
