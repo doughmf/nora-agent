@@ -3,7 +3,7 @@ import os
 from openai import AsyncOpenAI # Usado para OpenRouter ou OpenAI
 from datetime import datetime
 from src.supabase.client import (
-    get_or_create_resident, get_conversation_history,
+    get_resident, get_conversation_history,
     save_message, semantic_search
 )
 from src.whatsapp.sender import send_typing_indicator
@@ -25,8 +25,16 @@ class NoraAgent:
     async def process(self, phone: str, message: str) -> str:
         """Processa mensagem e retorna resposta."""
         
-        # 1. Obter/criar residente
-        resident = await get_or_create_resident(phone)
+        # 1. Obter residente
+        resident = await get_resident(phone)
+        
+        if not resident:
+            # Retorno imediato, sem acionar a LLM
+            return (
+                "Olá! Seu número de WhatsApp não consta no cadastro do Residencial Nogueira Martins.\n\n"
+                "Para sua segurança e a do condomínio, apenas moradores cadastrados podem interagir por aqui.\n"
+                "Por favor, entre em contato com a administração e solicite o seu cadastro."
+            )
         
         # 2. Recuperar histórico
         history = await get_conversation_history(phone)

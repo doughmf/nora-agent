@@ -15,25 +15,18 @@ async def semantic_search(query_embedding: list[float], threshold: float = 0.75)
     }).execute()
     return result.data
 
-async def get_or_create_resident(phone: str) -> dict:
-    """Retorna residente existente ou cria novo."""
+async def get_resident(phone: str) -> dict | None:
+    """Retorna o residente existente ou None se não cadastrado."""
     result = supabase.table("residents") \
         .select("*") \
         .eq("whatsapp_phone", phone) \
         .maybe_single() \
         .execute()
     
-    # maybe_single() + execute() retorna None quando não há resultado
     if result is not None and result.data:
         return result.data
     
-    # Criar novo residente (onboarding pendente)
-    new_resident = supabase.table("residents").insert({
-        "whatsapp_phone": phone,
-        "profile": {"onboarding_complete": False}
-    }).execute()
-    
-    return new_resident.data[0]
+    return None
 
 async def save_message(resident_id: str, role: str, content: str, session_id: str, intent: str = None):
     """Salva mensagem no histórico."""
