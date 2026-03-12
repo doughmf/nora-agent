@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moradores - SYNDRA Painel</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .custom-gradient { background: linear-gradient(135deg, #0d9488, #0f766e); }
+        .truncate-cell { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    </style>
+</head>
+<body class="bg-base-200 min-h-screen">
+
+<!-- Navbar -->
+<div class="navbar custom-gradient text-primary-content shadow-lg px-8">
+    <div class="flex-1">
+        <a href="/admin/dashboard" class="text-xl font-bold flex items-center gap-2">
+            <i class="fa-solid fa-robot"></i> SYNDRA Painel Admin
+        </a>
+    </div>
+    <div class="flex-none gap-2">
+        <span class="text-sm font-bold">{{ user.name }}</span>
+        <span class="badge badge-outline text-white border-white/40 text-xs ml-1">{{ user.role }}</span>
+        <a href="/admin/logout" class="btn btn-ghost btn-sm text-white border border-white/30 ml-2">
+            <i class="fa-solid fa-right-from-bracket"></i> Sair
+        </a>
+    </div>
+</div>
+
+<div class="p-6 max-w-7xl mx-auto space-y-5">
+
+    <!-- Header -->
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <h1 class="text-3xl font-bold">Moradores</h1>
+            <p class="text-gray-500 text-sm mt-1">{{ condo_name }} — <strong>{{ total }}</strong> morador(es) cadastrado(s)</p>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+            <a href="/admin/dashboard" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+            <button onclick="document.getElementById('modal-import').showModal()" class="btn btn-outline btn-sm btn-accent">
+                <i class="fa-solid fa-file-csv"></i> Importar CSV
+            </button>
+            <a href="/admin/residents/export" class="btn btn-outline btn-sm btn-info">
+                <i class="fa-solid fa-download"></i> Exportar CSV
+            </a>
+            <button onclick="openNewModal()" class="btn btn-primary btn-sm custom-gradient text-white border-none">
+                <i class="fa-solid fa-user-plus"></i> Novo Morador
+            </button>
+        </div>
+    </div>
+
+    <!-- Alertas -->
+    {% if success %}<div role="alert" class="alert alert-success py-2"><i class="fa-solid fa-circle-check"></i><span>{{ success }}</span></div>{% endif %}
+    {% if error %}<div role="alert" class="alert alert-error py-2"><i class="fa-solid fa-circle-exclamation"></i><span>{{ error }}</span></div>{% endif %}
+
+    <!-- Filtros -->
+    <form method="GET" action="/admin/residents" class="card bg-base-100 shadow p-4">
+        <div class="flex flex-wrap gap-3 items-end">
+            <div class="form-control">
+                <label class="label py-0"><span class="label-text text-xs font-semibold">Buscar</span></label>
+                <input type="text" name="q" value="{{ filters.q }}" placeholder="Nome, apto, telefone..." class="input input-bordered input-sm w-52">
+            </div>
+            <div class="form-control">
+                <label class="label py-0"><span class="label-text text-xs font-semibold">Bloco</span></label>
+                <select name="block" class="select select-bordered select-sm w-32">
+                    <option value="">Todos</option>
+                    {% for b in blocks %}
+                    <option value="{{ b }}" {% if filters.block == b %}selected{% endif %}>Bloco {{ b }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-control">
+                <label class="label py-0"><span class="label-text text-xs font-semibold">Tipo</span></label>
+                <select name="tipo" class="select select-bordered select-sm w-36">
+                    <option value="">Todos</option>
+                    <option value="owner" {% if filters.tipo == 'owner' %}selected{% endif %}>Proprietário</option>
+                    <option value="tenant" {% if filters.tipo == 'tenant' %}selected{% endif %}>Inquilino</option>
+                </select>
+            </div>
+            <div class="form-control">
+                <label class="label py-0"><span class="label-text text-xs font-semibold">Status</span></label>
+                <select name="status" class="select select-bordered select-sm w-36">
+                    <option value="">Todos</option>
+                    <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Ativos</option>
+                    <option value="inactive" {% if filters.status == 'inactive' %}selected{% endif %}>Inativos</option>
+                    <option value="onboarding" {% if filters.status == 'onboarding' %}selected{% endif %}>Onboarding</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary">
+                <i class="fa-solid fa-magnifying-glass"></i> Filtrar
+            </button>
+            <a href="/admin/residents" class="btn btn-sm btn-ghost">Limpar</a>
+        </div>
+    </form>
+
+    <!-- Tabela -->
+    <div class="card bg-base-100 shadow-xl overflow-x-auto">
+        <table class="table table-zebra w-full text-sm">
+            <thead>
+                <tr class="bg-base-200">
+                    <th>Morador</th>
+                    <th>Apto / Bloco</th>
+                    <th>WhatsApp</th>
+                    <th>Tipo</th>
+                    <th>Onboarding</th>
+                    <th>WhatsApp Ativo</th>
+                    <th class="text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in residents %}
+                <tr class="{% if not r.active %}opacity-50{% endif %}">
+                    <td>
+                        <div class="font-semibold truncate-cell" title="{{ r.name or 'Sem nome' }}">{{ r.name or '—' }}</div>
+                        {% if r.email %}<div class="text-xs text-gray-400 truncate-cell" title="{{ r.email }}">{{ r.email }}</div>{% endif %}
+                    </td>
+                    <td>
+                        <span class="font-mono">{{ r.apartment or '—' }}</span>
+                        {% if r.block %}<span class="badge badge-ghost badge-sm ml-1">Bl {{ r.block }}</span>{% endif %}
+                    </td>
+                    <td class="font-mono text-xs">{{ r.whatsapp_phone }}</td>
+                    <td>
+                        {% if r.is_owner %}
+                            <span class="badge badge-primary badge-sm">Proprietário</span>
+                        {% else %}
+                            <span class="badge badge-secondary badge-sm">Inquilino</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.profile and r.profile.onboarding_complete %}
+                            <span class="badge badge-success badge-sm gap-1"><i class="fa-solid fa-check text-xs"></i> OK</span>
+                        {% else %}
+                            <span class="badge badge-warning badge-sm gap-1"><i class="fa-solid fa-clock text-xs"></i> Pendente</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <form action="/admin/residents/{{ r.id }}/toggle-active" method="POST" class="inline">
+                            <button type="submit" class="btn btn-xs {% if r.active %}btn-success{% else %}btn-error{% endif %} btn-outline" title="{% if r.active %}Desativar{% else %}Ativar{% endif %}">
+                                <i class="fa-solid {% if r.active %}fa-toggle-on{% else %}fa-toggle-off{% endif %}"></i>
+                            </button>
+                        </form>
+                    </td>
+                    <td class="text-center">
+                        <div class="flex gap-1 justify-center">
+                            <button onclick='openEditModal({{ r | tojson }})' class="btn btn-xs btn-outline btn-info" title="Editar">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="openDeleteModal('{{ r.id }}', '{{ r.name or r.whatsapp_phone }}')" class="btn btn-xs btn-outline btn-error" title="Excluir">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-10 text-gray-400">
+                        <i class="fa-solid fa-users-slash text-4xl mb-3 block"></i>
+                        Nenhum morador encontrado com esses filtros.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Paginação -->
+        {% if total_pages > 1 %}
+        <div class="flex justify-center py-4 gap-2">
+            {% if page > 1 %}
+            <a href="?page={{ page - 1 }}&q={{ filters.q }}&block={{ filters.block }}&tipo={{ filters.tipo }}&status={{ filters.status }}" class="btn btn-sm btn-outline">← Anterior</a>
+            {% endif %}
+            <span class="btn btn-sm btn-disabled">{{ page }} / {{ total_pages }}</span>
+            {% if page < total_pages %}
+            <a href="?page={{ page + 1 }}&q={{ filters.q }}&block={{ filters.block }}&tipo={{ filters.tipo }}&status={{ filters.status }}" class="btn btn-sm btn-outline">Próximo →</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL: Novo / Editar Morador
+══════════════════════════════════════════════════════ -->
+<dialog id="modal-resident" class="modal">
+  <div class="modal-box w-11/12 max-w-2xl">
+    <h3 id="modal-title" class="font-bold text-lg mb-4"><i class="fa-solid fa-user-plus mr-2 text-teal-600"></i>Novo Morador</h3>
+    <form id="form-resident" action="/admin/residents/new" method="POST" class="space-y-4">
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <!-- Nome -->
+        <div class="form-control md:col-span-2">
+          <label class="label"><span class="label-text font-semibold">Nome completo</span></label>
+          <input type="text" id="f-name" name="name" class="input input-bordered" placeholder="Ex: João da Silva">
+        </div>
+
+        <!-- WhatsApp -->
+        <div class="form-control">
+          <label class="label"><span class="label-text font-semibold">WhatsApp * <span class="text-xs text-gray-400">(com DDD, sem +)</span></span></label>
+          <input type="text" id="f-phone" name="whatsapp_phone" class="input input-bordered font-mono" placeholder="5511999999999" required>
+        </div>
+
+        <!-- CPF -->
+        <div class="form-control">
+          <label class="label"><span class="label-text font-semibold">CPF</span></label>
+          <input type="text" id="f-cpf" name="cpf" class="input input-bordered font-mono" placeholder="000.000.000-00" maxlength="14">
+        </div>
+
+        <!-- E-mail -->
+        <div class="form-control">
+          <label class="label"><span class="label-text font-semibold">E-mail</span></label>
+          <input type="email" id="f-email" name="email" class="input input-bordered" placeholder="joao@email.com">
+        </div>
+
+        <!-- Tipo -->
+        <div class="form-control">
+          <label class="label"><span class="label-text font-semibold">Tipo</span></label>
+          <select id="f-owner" name="is_owner" class="select select-bordered">
+            <option value="true">Proprietário</option>
+            <option value="false">Inquilino</option>
+          </select>
+        </div>
+
+        <!-- Apartamento -->
+        <div class="form-control">
+          <label class="label"><span class="label-text font-semibold">Apartamento *</span></label>
+          <input type="text" id="f-apt" name="apartment" class="input input-bordered" placeholder="Ex: 101" required>
+        </div>
+
+        <!-- Bloco -->
+        <div class="form-control">
+          <label class="label"><span class="label-text font-semibold">Bloco</span></label>
+          <input type="text" id="f-block" name="block" class="input input-bordered" placeholder="Ex: A">
+        </div>
+
+        <!-- Veículos -->
+        <div class="form-control md:col-span-2">
+          <label class="label"><span class="label-text font-semibold">Veículos <span class="text-xs text-gray-400">(placas separadas por vírgula)</span></span></label>
+          <input type="text" id="f-vehicles" name="vehicles" class="input input-bordered font-mono" placeholder="ABC-1234, XYZ-5678">
+        </div>
+
+        <!-- Dependentes -->
+        <div class="form-control md:col-span-2">
+          <label class="label justify-between">
+            <span class="label-text font-semibold">Dependentes</span>
+            <button type="button" onclick="addDependent()" class="btn btn-xs btn-ghost text-teal-600">
+              <i class="fa-solid fa-plus"></i> Adicionar
+            </button>
+          </label>
+          <div id="dependents-list" class="space-y-2"></div>
+          <input type="hidden" id="f-dependents" name="dependents" value="[]">
+        </div>
+
+      </div>
+
+      <div class="modal-action">
+        <button type="button" onclick="document.getElementById('modal-resident').close()" class="btn btn-ghost">Cancelar</button>
+        <button type="submit" class="btn btn-primary custom-gradient text-white border-none">
+          <i class="fa-solid fa-floppy-disk mr-1"></i> <span id="btn-save-label">Cadastrar</span>
+        </button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>fechar</button></form>
+</dialog>
+
+<!-- ══ MODAL: Importar CSV ══ -->
+<dialog id="modal-import" class="modal">
+  <div class="modal-box max-w-lg">
+    <h3 class="font-bold text-lg mb-2"><i class="fa-solid fa-file-csv mr-2 text-green-600"></i>Importar Moradores via CSV</h3>
+    <div class="alert alert-info text-sm mb-4 py-2">
+      <i class="fa-solid fa-circle-info"></i>
+      <span>O CSV deve ter as colunas: <code class="font-mono">name, whatsapp_phone, apartment, block, is_owner, cpf, email, vehicles</code></span>
+    </div>
+    <a href="/admin/residents/csv-template" class="btn btn-xs btn-outline btn-info mb-4">
+      <i class="fa-solid fa-download"></i> Baixar modelo CSV
+    </a>
+    <form action="/admin/residents/import" method="POST" enctype="multipart/form-data" class="space-y-4">
+      <div class="form-control">
+        <label class="label"><span class="label-text font-semibold">Arquivo CSV *</span></label>
+        <input type="file" name="file" accept=".csv" class="file-input file-input-bordered w-full" required>
+      </div>
+      <div class="modal-action">
+        <button type="button" onclick="document.getElementById('modal-import').close()" class="btn btn-ghost">Cancelar</button>
+        <button type="submit" class="btn btn-success text-white"><i class="fa-solid fa-upload mr-1"></i> Importar</button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>fechar</button></form>
+</dialog>
+
+<!-- ══ MODAL: Confirmar Exclusão ══ -->
+<dialog id="modal-delete" class="modal">
+  <div class="modal-box max-w-sm">
+    <h3 class="font-bold text-lg text-error mb-2"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Confirmar Exclusão</h3>
+    <p class="text-sm text-gray-500 mb-4">Excluir o morador <strong id="delete-name"></strong>? Todo o histórico de conversas será mantido, mas o acesso ao WhatsApp será removido.</p>
+    <form id="form-delete" action="" method="POST">
+      <div class="modal-action">
+        <button type="button" onclick="document.getElementById('modal-delete').close()" class="btn btn-ghost">Cancelar</button>
+        <button type="submit" class="btn btn-error text-white"><i class="fa-solid fa-trash mr-1"></i> Excluir</button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>fechar</button></form>
+</dialog>
+
+<script>
+// ── Dependentes dinâmicos ──────────────────────────────────
+let dependents = [];
+
+function addDependent(name = '', relation = '') {
+    const idx = dependents.length;
+    dependents.push({ name, relation });
+    renderDependents();
+}
+
+function removeDependent(idx) {
+    dependents.splice(idx, 1);
+    renderDependents();
+}
+
+function renderDependents() {
+    const list = document.getElementById('dependents-list');
+    list.innerHTML = dependents.map((d, i) => `
+        <div class="flex gap-2 items-center">
+            <input type="text" placeholder="Nome" value="${d.name}"
+                onchange="dependents[${i}].name=this.value; syncDependents()"
+                class="input input-bordered input-sm flex-1">
+            <input type="text" placeholder="Parentesco (ex: filho)"  value="${d.relation}"
+                onchange="dependents[${i}].relation=this.value; syncDependents()"
+                class="input input-bordered input-sm w-36">
+            <button type="button" onclick="removeDependent(${i})" class="btn btn-xs btn-ghost text-error">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>`).join('');
+    syncDependents();
+}
+
+function syncDependents() {
+    document.getElementById('f-dependents').value = JSON.stringify(dependents);
+}
+
+// ── Abrir modal novo morador ───────────────────────────────
+function openNewModal() {
+    dependents = [];
+    renderDependents();
+    document.getElementById('modal-title').innerHTML = '<i class="fa-solid fa-user-plus mr-2 text-teal-600"></i>Novo Morador';
+    document.getElementById('btn-save-label').innerText = 'Cadastrar';
+    document.getElementById('form-resident').action = '/admin/residents/new';
+    ['f-name','f-phone','f-cpf','f-email','f-apt','f-block','f-vehicles'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-owner').value = 'true';
+    document.getElementById('modal-resident').showModal();
+}
+
+// ── Abrir modal editar morador ─────────────────────────────
+function openEditModal(r) {
+    dependents = r.dependents || [];
+    renderDependents();
+    document.getElementById('modal-title').innerHTML = '<i class="fa-solid fa-pen mr-2 text-blue-500"></i>Editar Morador';
+    document.getElementById('btn-save-label').innerText = 'Salvar';
+    document.getElementById('form-resident').action = `/admin/residents/${r.id}/edit`;
+    document.getElementById('f-name').value    = r.name || '';
+    document.getElementById('f-phone').value   = r.whatsapp_phone || '';
+    document.getElementById('f-cpf').value     = r.cpf || '';
+    document.getElementById('f-email').value   = r.email || '';
+    document.getElementById('f-apt').value     = r.apartment || '';
+    document.getElementById('f-block').value   = r.block || '';
+    document.getElementById('f-owner').value   = r.is_owner ? 'true' : 'false';
+    document.getElementById('f-vehicles').value = (r.vehicles || []).join(', ');
+    document.getElementById('modal-resident').showModal();
+}
+
+// ── Modal exclusão ─────────────────────────────────────────
+function openDeleteModal(id, name) {
+    document.getElementById('delete-name').innerText = name;
+    document.getElementById('form-delete').action = `/admin/residents/${id}/delete`;
+    document.getElementById('modal-delete').showModal();
+}
+</script>
+</body>
+</html>

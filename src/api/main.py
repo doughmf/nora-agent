@@ -458,3 +458,295 @@ async def debug_info(user_session: dict = Depends(authenticate_admin)):
         raise HTTPException(403, "Disponível apenas em modo DEBUG.")
     return {"cwd": os.getcwd(),
             "env_vars": [k for k in os.environ.keys() if not any(s in k for s in ["KEY", "TOKEN", "PASS", "SECRET"])]}
+
+# ════════════════════════════════════════════════════════════
+# MORADORES
+# ════════════════════════════════════════════════════════════
+import csv, io, json
+from fastapi import UploadFile, File
+from fastapi.responses import StreamingResponse
+
+PAGE_SIZE = 20
+
+@app.get("/admin/residents", response_class=HTMLResponse)
+async def admin_residents_list(
+    request: Request,
+    user_session: dict = Depends(authenticate_admin),
+    q: str = "", block: str = "", tipo: str = "", status: str = "",
+    page: int = 1, success: str = None, error: str = None
+):
+    require_permission(user_session, "view_residents")
+    condo_id = user_session.get("condo_id")
+    if not condo_id:
+        return RedirectResponse(url="/admin/condos", status_code=302)
+
+    try:
+        query = supabase.table("residents").select("*").eq("condo_id", condo_id)
+
+        if q:
+            query = query.or_(f"name.ilike.%{q}%,whatsapp_phone.ilike.%{q}%,apartment.ilike.%{q}%,email.ilike.%{q}%")
+        if block:
+            query = query.eq("block", block)
+        if tipo == "owner":
+            query = query.eq("is_owner", True)
+        elif tipo == "tenant":
+            query = query.eq("is_owner", False)
+        if status == "active":
+            query = query.eq("active", True)
+        elif status == "inactive":
+            query = query.eq("active", False)
+        elif status == "onboarding":
+            query = query.eq("active", True)  # filtro adicional via Python abaixo
+
+        all_res = query.order("block").order("apartment").execute()
+        all_residents = all_res.data or []
+
+        # Filtro onboarding (campo JSONB — feito em Python)
+        if status == "onboarding":
+            all_residents = [r for r in all_residents if not (r.get("profile") or {}).get("onboarding_complete")]
+
+        total = len(all_residents)
+        total_pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
+        page = max(1, min(page, total_pages))
+        residents = all_residents[(page - 1) * PAGE_SIZE : page * PAGE_SIZE]
+
+        # Blocos disponíveis para o filtro
+        blocks_res = supabase.table("residents").select("block").eq("condo_id", condo_id).execute()
+        blocks = sorted({r["block"] for r in (blocks_res.data or []) if r.get("block")})
+
+    except Exception as e:
+        logger.error(f"Erro ao listar moradores: {e}")
+        residents, total, total_pages, blocks = [], 0, 1, []
+
+    return templates.TemplateResponse(request=request, name="residents.html", context={
+        "user": user_session,
+        "condo_name": get_setting(condo_id, "CONDO_NAME", "Condomínio"),
+        "residents": residents,
+        "total": total,
+        "page": page,
+        "total_pages": total_pages,
+        "blocks": blocks,
+        "filters": {"q": q, "block": block, "tipo": tipo, "status": status},
+        "success": success,
+        "error": error,
+    })
+
+
+@app.post("/admin/residents/new")
+async def admin_resident_create(
+    request: Request,
+    user_session: dict = Depends(authenticate_admin),
+    name: str = Form(""), whatsapp_phone: str = Form(...),
+    cpf: str = Form(""), email: str = Form(""),
+    is_owner: str = Form("true"), apartment: str = Form(...),
+    block: str = Form(""), vehicles: str = Form(""),
+    dependents: str = Form("[]")
+):
+    require_permission(user_session, "view_residents")
+    condo_id = user_session.get("condo_id")
+
+    # Formatar telefone
+    phone_clean = whatsapp_phone.replace("+", "").replace(" ", "").replace("-", "")
+
+    # Verificar duplicata
+    existing = supabase.table("residents").select("id").eq("condo_id", condo_id).eq("whatsapp_phone", phone_clean).execute()
+    if existing.data:
+        return RedirectResponse(url=f"/admin/residents?error=Telefone {phone_clean} já cadastrado neste condomínio.", status_code=302)
+
+    # Processar veículos e dependentes
+    vehicles_list = [v.strip().upper() for v in vehicles.split(",") if v.strip()] if vehicles else []
+    try:
+        dependents_list = json.loads(dependents)
+    except Exception:
+        dependents_list = []
+
+    try:
+        supabase.table("residents").insert({
+            "condo_id": condo_id,
+            "name": name or None,
+            "whatsapp_phone": phone_clean,
+            "cpf": cpf or None,
+            "email": email or None,
+            "is_owner": is_owner == "true",
+            "apartment": apartment,
+            "block": block or None,
+            "vehicles": vehicles_list,
+            "dependents": dependents_list,
+            "active": True,
+            "profile": {"onboarding_complete": bool(name)}
+        }).execute()
+        return RedirectResponse(url=f"/admin/residents?success=Morador cadastrado com sucesso!", status_code=302)
+    except Exception as e:
+        logger.error(f"Erro ao criar morador: {e}")
+        return RedirectResponse(url=f"/admin/residents?error={str(e)}", status_code=302)
+
+
+@app.post("/admin/residents/{resident_id}/edit")
+async def admin_resident_edit(
+    resident_id: str,
+    user_session: dict = Depends(authenticate_admin),
+    name: str = Form(""), whatsapp_phone: str = Form(...),
+    cpf: str = Form(""), email: str = Form(""),
+    is_owner: str = Form("true"), apartment: str = Form(...),
+    block: str = Form(""), vehicles: str = Form(""),
+    dependents: str = Form("[]")
+):
+    require_permission(user_session, "view_residents")
+    condo_id = user_session.get("condo_id")
+
+    phone_clean = whatsapp_phone.replace("+", "").replace(" ", "").replace("-", "")
+    vehicles_list = [v.strip().upper() for v in vehicles.split(",") if v.strip()] if vehicles else []
+    try:
+        dependents_list = json.loads(dependents)
+    except Exception:
+        dependents_list = []
+
+    try:
+        supabase.table("residents").update({
+            "name": name or None,
+            "whatsapp_phone": phone_clean,
+            "cpf": cpf or None,
+            "email": email or None,
+            "is_owner": is_owner == "true",
+            "apartment": apartment,
+            "block": block or None,
+            "vehicles": vehicles_list,
+            "dependents": dependents_list,
+            "profile": {"onboarding_complete": bool(name)}
+        }).eq("id", resident_id).eq("condo_id", condo_id).execute()
+        return RedirectResponse(url="/admin/residents?success=Morador atualizado com sucesso!", status_code=302)
+    except Exception as e:
+        return RedirectResponse(url=f"/admin/residents?error={str(e)}", status_code=302)
+
+
+@app.post("/admin/residents/{resident_id}/toggle-active")
+async def admin_resident_toggle(resident_id: str, user_session: dict = Depends(authenticate_admin)):
+    require_permission(user_session, "view_residents")
+    condo_id = user_session.get("condo_id")
+    try:
+        res = supabase.table("residents").select("active").eq("id", resident_id).eq("condo_id", condo_id).maybe_single().execute()
+        if not res.data:
+            return RedirectResponse(url="/admin/residents?error=Morador não encontrado.", status_code=302)
+        new_status = not res.data.get("active", True)
+        supabase.table("residents").update({"active": new_status}).eq("id", resident_id).execute()
+        msg = "Acesso ao WhatsApp ativado." if new_status else "Acesso ao WhatsApp desativado."
+        return RedirectResponse(url=f"/admin/residents?success={msg}", status_code=302)
+    except Exception as e:
+        return RedirectResponse(url=f"/admin/residents?error={str(e)}", status_code=302)
+
+
+@app.post("/admin/residents/{resident_id}/delete")
+async def admin_resident_delete(resident_id: str, user_session: dict = Depends(authenticate_admin)):
+    require_permission(user_session, "view_residents")
+    condo_id = user_session.get("condo_id")
+    try:
+        supabase.table("residents").delete().eq("id", resident_id).eq("condo_id", condo_id).execute()
+        return RedirectResponse(url="/admin/residents?success=Morador excluído com sucesso.", status_code=302)
+    except Exception as e:
+        return RedirectResponse(url=f"/admin/residents?error={str(e)}", status_code=302)
+
+
+# ─── Exportar CSV ──────────────────────────────────────────
+@app.get("/admin/residents/export")
+async def admin_residents_export(user_session: dict = Depends(authenticate_admin)):
+    require_permission(user_session, "view_residents")
+    condo_id = user_session.get("condo_id")
+    res = supabase.table("residents").select("*").eq("condo_id", condo_id).order("block").order("apartment").execute()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["name", "whatsapp_phone", "apartment", "block", "is_owner", "cpf", "email", "vehicles", "active"])
+    for r in (res.data or []):
+        writer.writerow([
+            r.get("name", ""), r.get("whatsapp_phone", ""), r.get("apartment", ""),
+            r.get("block", ""), r.get("is_owner", True), r.get("cpf", ""),
+            r.get("email", ""), ",".join(r.get("vehicles") or []), r.get("active", True)
+        ])
+
+    output.seek(0)
+    condo_name = get_setting(condo_id, "CONDO_NAME", "condo").replace(" ", "_")
+    filename = f"moradores_{condo_name}_{datetime.now().strftime('%Y%m%d')}.csv"
+    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+
+# ─── Template CSV ──────────────────────────────────────────
+@app.get("/admin/residents/csv-template")
+async def residents_csv_template(user_session: dict = Depends(authenticate_admin)):
+    require_permission(user_session, "view_residents")
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["name", "whatsapp_phone", "apartment", "block", "is_owner", "cpf", "email", "vehicles"])
+    writer.writerow(["João da Silva", "5511999990001", "101", "A", "true", "000.000.000-00", "joao@email.com", "ABC-1234"])
+    writer.writerow(["Maria Souza", "5511999990002", "202", "B", "false", "", "maria@email.com", ""])
+    output.seek(0)
+    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=modelo_moradores.csv"})
+
+
+# ─── Importar CSV ──────────────────────────────────────────
+@app.post("/admin/residents/import")
+async def admin_residents_import(
+    request: Request,
+    user_session: dict = Depends(authenticate_admin),
+    file: UploadFile = File(...)
+):
+    require_permission(user_session, "view_residents")
+    condo_id = user_session.get("condo_id")
+
+    if not file.filename.endswith(".csv"):
+        return RedirectResponse(url="/admin/residents?error=Arquivo deve ser .csv", status_code=302)
+
+    content = await file.read()
+    try:
+        text = content.decode("utf-8-sig")  # utf-8-sig para suportar BOM do Excel
+    except Exception:
+        text = content.decode("latin-1")
+
+    reader = csv.DictReader(io.StringIO(text))
+    inserted, skipped, errors = 0, 0, []
+
+    for i, row in enumerate(reader, start=2):
+        phone = row.get("whatsapp_phone", "").replace("+", "").replace(" ", "").replace("-", "").strip()
+        apartment = row.get("apartment", "").strip()
+
+        if not phone or not apartment:
+            errors.append(f"Linha {i}: whatsapp_phone e apartment são obrigatórios")
+            skipped += 1
+            continue
+
+        # Verificar duplicata
+        existing = supabase.table("residents").select("id").eq("condo_id", condo_id).eq("whatsapp_phone", phone).execute()
+        if existing.data:
+            skipped += 1
+            continue
+
+        vehicles_raw = row.get("vehicles", "")
+        vehicles_list = [v.strip().upper() for v in vehicles_raw.split(",") if v.strip()] if vehicles_raw else []
+        name = row.get("name", "").strip()
+
+        try:
+            supabase.table("residents").insert({
+                "condo_id": condo_id,
+                "name": name or None,
+                "whatsapp_phone": phone,
+                "cpf": row.get("cpf", "").strip() or None,
+                "email": row.get("email", "").strip() or None,
+                "is_owner": str(row.get("is_owner", "true")).lower() in ("true", "1", "sim", "s"),
+                "apartment": apartment,
+                "block": row.get("block", "").strip() or None,
+                "vehicles": vehicles_list,
+                "dependents": [],
+                "active": True,
+                "profile": {"onboarding_complete": bool(name)}
+            }).execute()
+            inserted += 1
+        except Exception as e:
+            errors.append(f"Linha {i}: {str(e)}")
+            skipped += 1
+
+    msg = f"Importação concluída: {inserted} inseridos, {skipped} ignorados."
+    if errors:
+        msg += f" Erros: {'; '.join(errors[:3])}"
+        return RedirectResponse(url=f"/admin/residents?error={msg}", status_code=302)
+    return RedirectResponse(url=f"/admin/residents?success={msg}", status_code=302)
