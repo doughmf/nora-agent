@@ -77,6 +77,21 @@
                         <label class="label"><span class="label-text-alt text-gray-500">Como a IA deve se apresentar aos moradores no WhatsApp</span></label>
                     </div>
                     <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold text-primary">Provedor de IA (LLM Provider)</span></label>
+                        <select name="LLM_PROVIDER" class="select select-bordered w-full">
+                            <option value="OpenRouter" {% if settings.get('LLM_PROVIDER', 'OpenRouter') == 'OpenRouter' %}selected{% endif %}>OpenRouter</option>
+                            <option value="OpenAI" {% if settings.get('LLM_PROVIDER') == 'OpenAI' %}selected{% endif %}>OpenAI</option>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold text-primary">Modelo de IA (LLM Model V2)</span></label>
+                        <input type="text" name="LLM_MODEL" value="{{ settings.get('LLM_MODEL', 'stepfun/step-3.5-flash:free') }}" placeholder="Ex: gpt-4o-mini ou claude-3-haiku" class="input input-bordered" />
+                    </div>
+                    <div class="form-control md:col-span-2">
+                        <label class="label"><span class="label-text font-semibold text-primary">Chave de Acesso da IA (API Key)</span></label>
+                        <input type="password" name="LLM_API_KEY" value="{{ settings.get('LLM_API_KEY', '') }}" placeholder="sk-or-v1-..." class="input input-bordered w-full font-mono text-sm" />
+                    </div>
+                    <div class="form-control">
                         <label class="label"><span class="label-text font-semibold">Nome do Condomínio</span></label>
                         <input type="text" name="CONDO_NAME" value="{{ settings.get('CONDO_NAME', '') }}" class="input input-bordered" />
                     </div>

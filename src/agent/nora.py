@@ -11,15 +11,20 @@ from src.agent.tools import TOOLS, execute_tool
 from src.agent.prompts import build_system_prompt
 import json
 
-# Configuração do cliente (Exemplo com OpenRouter)
-client = AsyncOpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-)
+from src.api.settings_manager import get_setting
 
 class NoraAgent:
     def __init__(self):
-        self.model = "stepfun/step-3.5-flash:free" # Nome do modelo no OpenRouter
+        self.provider = get_setting("LLM_PROVIDER", "OpenRouter")
+        self.model = get_setting("LLM_MODEL", "stepfun/step-3.5-flash:free")
+        self.api_key = get_setting("LLM_API_KEY", os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY") or "")
+        
+        base_url = "https://openrouter.ai/api/v1" if self.provider == "OpenRouter" else None
+        
+        self.client = AsyncOpenAI(
+            base_url=base_url,
+            api_key=self.api_key,
+        )
         self.max_tokens = 1024
     
     async def process(self, phone: str, message: str) -> str:
@@ -59,7 +64,7 @@ class NoraAgent:
         await send_typing_indicator(phone, duration=2)
         
         # 7. Chamar LLM com ferramentas
-        response = await client.chat.completions.create(
+        response = await self.client.chat.completions.create(
             model=self.model,
             max_tokens=self.max_tokens,
             messages=[{"role": "system", "content": system_prompt}] + messages,
@@ -100,7 +105,7 @@ class NoraAgent:
                     "content": json.dumps(result)
                 })
             
-            response = await client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 max_tokens=self.max_tokens,
                 messages=[{"role": "system", "content": system_prompt}] + messages,
