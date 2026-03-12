@@ -254,7 +254,7 @@ async def admin_settings_page(request: Request, user_session: dict = Depends(aut
         
     # Carrega as configurações principais para alimentar os campos baseados na lista original    
     keys_to_load = [
-        "CONDO_NAME", "CONDO_CNPJ", "CONDO_ADDRESS", "SINDICO_NAME", "SINDICO_PHONE",
+        "AGENT_NAME", "CONDO_NAME", "CONDO_CNPJ", "CONDO_ADDRESS", "SINDICO_NAME", "SINDICO_PHONE",
         "ZELADOR_NAME", "ZELADOR_PHONE", "PORTARIA_PHONE", "ADMINISTRADORA_PHONE",
         "SALAO_PRECO_NOITE", "SALAO_PRECO_DIA", "CHURRASQUEIRA_PRECO", "PIX_CHAVE", "PIX_NOME"
     ]

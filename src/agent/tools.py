@@ -357,7 +357,7 @@ async def _criar_reserva(espaco: str, data: str, periodo: str, num_convidados: i
         "periodo": periodo,
         "valor": valor,
         "status": "Pré-reserva criada. Aguardando confirmação do pagamento.",
-        "instrucao_pagamento": f"Realize um Pix de R$ {valor:.2f} para a chave do condomínio e envie o comprovante."
+        "instrucao_pagamento": f"Instrução: Retorne com educação informando a chave PIX, o nome do recebedor ({{pix_nome}}) e os preços: Salão R$ {{preco_salao_n}} (Noturno) / R$ {{preco_salao_d}} (Diurno) e Churrasqueira R$ {{preco_churr}}. Mencionar explicitamente para não esquecerem de enviar o comprovante com a data/hora exata da reserva na mensagem para a administração ou síndico registrar. Mencionar que o pagamento é sua validação. Mencionar que você não emite boleto e só envia os dados."
     }
 
 

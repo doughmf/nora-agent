@@ -24,11 +24,16 @@
     {% endif %}
 
     <form method="POST" action="/admin/settings" class="space-y-6">
-        <!-- BLOCO 1: Condomínio -->
+        <!-- BLOCO 1: Condomínio e IA -->
         <div class="card bg-base-100 shadow-xl border border-base-200">
             <div class="card-body">
-                <h2 class="card-title text-primary"><i class="fas fa-building mr-2"></i> Identificação do Condomínio</h2>
+                <h2 class="card-title text-primary"><i class="fas fa-building mr-2"></i> Identificação e Assistente</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control mb-2 md:col-span-2 border-b border-base-200 pb-4">
+                        <label class="label"><span class="label-text font-bold text-primary">Nome da Assistente de Inteligência Artificial</span></label>
+                        <input type="text" name="AGENT_NAME" value="{{ settings.get('AGENT_NAME', 'Nora') }}" placeholder="Ex: Nora, SíndicoBot..." class="input input-bordered input-primary max-w-sm font-semibold" required />
+                        <label class="label"><span class="label-text-alt text-gray-500">Como a IA deve se apresentar aos moradores no WhatsApp</span></label>
+                    </div>
                     <div class="form-control">
                         <label class="label"><span class="label-text font-semibold">Nome do Condomínio</span></label>
                         <input type="text" name="CONDO_NAME" value="{{ settings.get('CONDO_NAME', '') }}" class="input input-bordered" />
