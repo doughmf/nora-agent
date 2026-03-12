@@ -153,12 +153,20 @@ TOOLS = [
                         "type": "string",
                         "description": "Nome completo do morador"
                     },
+                    "block": {
+                        "type": "string",
+                        "description": "Número do bloco (ex: 01, 02, 11)"
+                    },
                     "apartment": {
                         "type": "string",
-                        "description": "Número do bloco e apartamento do morador (Ex: Bloco 1, Apt 03)"
+                        "description": "Número do apartamento (ex: 03, 11, 34)"
+                    },
+                    "is_owner": {
+                        "type": "boolean",
+                        "description": "True se for proprietário, False se for inquilino"
                     }
                 },
-                "required": ["phone", "name", "apartment"]
+                "required": ["phone", "name", "block", "apartment", "is_owner"]
             }
         }
     }
@@ -189,10 +197,10 @@ async def execute_tool(tool_name: str, tool_input: dict) -> dict:
         return {"erro": f"Falha ao executar {tool_name}: {str(e)}"}
 
 
-async def _atualizar_perfil_morador(phone: str, name: str, apartment: str) -> dict:
+async def _atualizar_perfil_morador(phone: str, name: str, block: str, apartment: str, is_owner: bool) -> dict:
     """Invoca o backend para atualizar o morador."""
     from src.supabase.client import update_resident_profile
-    return await update_resident_profile(phone, name, apartment)
+    return await update_resident_profile(phone, name, block, apartment, is_owner)
 
 
 async def _buscar_regimento(query: str) -> dict:

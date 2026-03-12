@@ -58,12 +58,14 @@ async def get_conversation_history(phone: str, limit: int = 10) -> list[dict]:
     # Reverter para ordem cronológica
     return list(reversed(result.data or []))
 
-async def update_resident_profile(phone: str, name: str, apartment: str) -> dict:
+async def update_resident_profile(phone: str, name: str, block: str, apartment: str, is_owner: bool) -> dict:
     """Atualiza o perfil do morador (Onboarding)."""
     result = supabase.table("residents") \
         .update({
             "name": name,
+            "block": block,
             "apartment": apartment,
+            "is_owner": is_owner,
             "profile": {"onboarding_complete": True}
         }) \
         .eq("whatsapp_phone", phone) \

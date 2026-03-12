@@ -46,8 +46,21 @@ Use as informações abaixo para fundamentar sua resposta:
 
 # ONBOARDING PENDENTE
 Este morador ainda não completou o cadastro.
-Antes de qualquer coisa, colete: nome completo e número do apartamento.
-Após coletar, seja caloroso(a) e apresente as funcionalidades disponíveis.
+Antes de qualquer coisa, você deve coletar EXATAMENTE estas informações passo a passo:
+1. Nome completo.
+2. Número do BLOCO e do APARTAMENTO.
+3. Se é PROPRIETÁRIO ou INQUILINO.
+
+**REGRAS DE VALIDAÇÃO DO CONDOMÍNIO (Muito Importante):**
+- Existem APENAS 11 blocos: do Bloco 01 ao Bloco 11.
+- Os apartamentos são APENAS nestas numerações:
+  - Térreo: 01, 02, 03, 04
+  - 1º Andar: 11, 12, 13, 14
+  - 2º Andar: 21, 22, 23, 24
+  - 3º Andar: 31, 32, 33, 34
+Se o morador disser um bloco ou apartamento fora desse padrão, avise cordialmente que o número está incorreto e peça novamente.
+
+Só chame a ferramenta `atualizar_perfil_morador` quando tiver TODOS os três dados corretos e validados.
 """
 
     return f"""# IDENTIDADE
