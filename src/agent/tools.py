@@ -3,9 +3,15 @@ Nora Agent — Definição das Tools para OpenAI/OpenRouter
 """
 from datetime import datetime
 import uuid
+import os
+import importlib.util
+import logging
 
-# ─── Definição das Tools (formato OpenAI/OpenRouter) ───────
-TOOLS = [
+logger = logging.getLogger("nora.skills")
+
+# ─── Definição Dinâmica de Skills ─────────────────────────
+# As tools básicas nativas
+NATIVE_TOOLS = [
     {
         "type": "function",
         "function": {
@@ -136,7 +142,7 @@ TOOLS = [
                 "required": ["protocolo"]
             }
         }
-    }
+    },
     {
         "type": "function",
         "function": {
@@ -172,6 +178,41 @@ TOOLS = [
     }
 ]
 
+# Variáveis Globais que serão carregadas em startup
+TOOLS = list(NATIVE_TOOLS)
+EXTERNAL_HANDLERS = {}
+
+def load_skills():
+    """Varre src/skills/ e importa dinamicamente ferramentas extras."""
+    global TOOLS, EXTERNAL_HANDLERS
+    
+    # Resetar nas recargas
+    TOOLS = list(NATIVE_TOOLS)
+    EXTERNAL_HANDLERS = {}
+    
+    skills_dir = os.path.join(os.path.dirname(__file__), "..", "skills")
+    if not os.path.exists(skills_dir):
+        return
+        
+    for filename in os.listdir(skills_dir):
+        if filename.endswith(".py") and not filename.startswith("_"):
+            module_name = filename[:-3]
+            file_path = os.path.join(skills_dir, filename)
+            
+            try:
+                spec = importlib.util.spec_from_file_location(f"skills.{module_name}", file_path)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                
+                if hasattr(module, "TOOL_DEFINITION") and hasattr(module, "execute"):
+                    TOOLS.append(module.TOOL_DEFINITION)
+                    EXTERNAL_HANDLERS[module.TOOL_DEFINITION["function"]["name"]] = module.execute
+                    logger.info(f"✅ Skill externa carregada: {module_name}")
+            except Exception as e:
+                logger.error(f"❌ Falha ao carregar skill {module_name}: {e}")
+
+# Executar carregamento inicial
+load_skills()
 
 # ─── Execução das Tools ─────────────────────────────
 async def execute_tool(tool_name: str, tool_input: dict) -> dict:
@@ -187,14 +228,23 @@ async def execute_tool(tool_name: str, tool_input: dict) -> dict:
         "atualizar_perfil_morador": _atualizar_perfil_morador,
     }
     
+    # 1. Tentar ferramenta nativa
     handler = handlers.get(tool_name)
-    if not handler:
-        return {"erro": f"Tool '{tool_name}' não encontrada"}
-    
-    try:
-        return await handler(**tool_input)
-    except Exception as e:
-        return {"erro": f"Falha ao executar {tool_name}: {str(e)}"}
+    if handler:
+        try:
+            return await handler(**tool_input)
+        except Exception as e:
+            return {"erro": f"Falha ao executar ferramenta nativa {tool_name}: {str(e)}"}
+            
+    # 2. Tentar ferramenta externa (Skill)
+    external_handler = EXTERNAL_HANDLERS.get(tool_name)
+    if external_handler:
+        try:
+            return await external_handler(**tool_input)
+        except Exception as e:
+            return {"erro": f"Falha ao executar skill {tool_name}: {str(e)}"}
+            
+    return {"erro": f"Tool '{tool_name}' não encontrada"}
 
 
 async def _atualizar_perfil_morador(phone: str, name: str, block: str, apartment: str, is_owner: bool) -> dict:
