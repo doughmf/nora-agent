@@ -1,0 +1,43 @@
+services:
+  nora-app:
+    build: .
+    container_name: nora_app
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_ACCESS_TOKEN=${SUPABASE_ACCESS_TOKEN}
+      - EVOLUTION_API_URL=${EVOLUTION_API_URL}
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+      - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE}
+      - REDIS_URL=${REDIS_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_KEY=${ADMIN_KEY}
+      - DOMAIN=${DOMAIN}
+      - CONDO_NAME=${CONDO_NAME}
+      - CONDO_CNPJ=${CONDO_CNPJ}
+      - CONDO_ADDRESS=${CONDO_ADDRESS}
+      - SINDICO_NAME=${SINDICO_NAME}
+      - SINDICO_PHONE=${SINDICO_PHONE}
+      - ZELADOR_NAME=${ZELADOR_NAME}
+      - ZELADOR_PHONE=${ZELADOR_PHONE}
+      - PORTARIA_PHONE=${PORTARIA_PHONE}
+      - PIX_CHAVE=${PIX_CHAVE}
+      - PIX_NOME=${PIX_NOME}
+    volumes:
+      - knowledge_docs:/app/knowledge_docs
+      - logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  knowledge_docs:
+  logs:
