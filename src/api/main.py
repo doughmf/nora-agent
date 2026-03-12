@@ -50,6 +50,17 @@ async def health():
         "timestamp": datetime.now().isoformat()
     }
 
+@app.get("/admin/debug-logs")
+async def debug_logs():
+    """Endpoint temporário para ver logs no servidor remoto."""
+    try:
+        if os.path.exists("uvicorn.log"):
+            with open("uvicorn.log", "r") as f:
+                return HTMLResponse(content=f"<pre>{f.read()[-10000:]}</pre>")
+        return {"error": "uvicorn.log not found"}
+    except Exception as e:
+        return {"error": str(e)}
+
 # ─── Configuração Frontend Web ─────────────────────
 # Templates
 templates_dir = os.path.join(os.path.dirname(__file__), "templates")
