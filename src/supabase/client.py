@@ -19,7 +19,7 @@ async def get_or_create_resident(phone: str) -> dict:
     result = supabase.table("residents") \
         .select("*") \
         .eq("whatsapp_phone", phone) \
-        .single() \
+        .maybe_single() \
         .execute()
     
     if result.data:
