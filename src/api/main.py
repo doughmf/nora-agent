@@ -425,3 +425,138 @@ async def debug_info(user_session: dict = Depends(authenticate_admin)):
         "cwd": os.getcwd(),
         "env_vars": [k for k in os.environ.keys() if not any(s in k for s in ["KEY", "TOKEN", "PASS", "SECRET"])]
     }
+
+# ════════════════════════════════════════════════════════════
+# GERENCIAMENTO DE USUÁRIOS
+# ════════════════════════════════════════════════════════════
+
+def _get_all_condos() -> list:
+    try:
+        res = supabase.table("condos").select("id, name").order("name").execute()
+        return res.data or []
+    except Exception:
+        return []
+
+def _enrich_users_with_condo(users: list, condos: list) -> list:
+    """Adiciona condo_name em cada usuário."""
+    condo_map = {c["id"]: c["name"] for c in condos}
+    for u in users:
+        u["condo_name"] = condo_map.get(u.get("condo_id"), "")
+    return users
+
+@app.get("/admin/users", response_class=HTMLResponse)
+async def admin_users_list(request: Request, user_session: dict = Depends(authenticate_admin),
+                            success: str = None, error: str = None):
+    if not is_super_admin(user_session):
+        raise HTTPException(403, "Acesso negado")
+
+    try:
+        res = supabase.table("system_users").select("id, name, username, role, condo_id, created_at").order("created_at", desc=True).execute()
+        users = res.data or []
+    except Exception as e:
+        logger.error(f"Erro ao listar usuários: {e}")
+        users = []
+
+    condos = _get_all_condos()
+    users = _enrich_users_with_condo(users, condos)
+
+    return templates.TemplateResponse(request=request, name="users.html", context={
+        "user": user_session,
+        "users": users,
+        "condos": condos,
+        "current_user_username": user_session.get("sub"),
+        "success": success,
+        "error": error
+    })
+
+
+@app.post("/admin/users/new")
+async def admin_user_create(request: Request, user_session: dict = Depends(authenticate_admin),
+    name: str = Form(...), username: str = Form(...),
+    password: str = Form(...), role: str = Form(...),
+    condo_id: str = Form("")):
+
+    if not is_super_admin(user_session):
+        raise HTTPException(403, "Acesso negado")
+
+    # Verificar se username já existe
+    try:
+        existing = supabase.table("system_users").select("id").eq("username", username).execute()
+        if existing.data:
+            return RedirectResponse(url=f"/admin/users?error=Usuário '{username}' já existe.", status_code=302)
+    except Exception as e:
+        return RedirectResponse(url=f"/admin/users?error={str(e)}", status_code=302)
+
+    # Hash da senha
+    password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    try:
+        supabase.table("system_users").insert({
+            "name": name,
+            "username": username,
+            "password_hash": password_hash,
+            "role": role,
+            "condo_id": condo_id if condo_id else None
+        }).execute()
+        logger.info(f"✅ Usuário criado: {username} (role: {role})")
+        return RedirectResponse(url=f"/admin/users?success=Usuário '{name}' criado com sucesso!", status_code=302)
+    except Exception as e:
+        logger.error(f"Erro ao criar usuário: {e}")
+        return RedirectResponse(url=f"/admin/users?error={str(e)}", status_code=302)
+
+
+@app.post("/admin/users/{user_id}/edit")
+async def admin_user_edit(user_id: str, request: Request, user_session: dict = Depends(authenticate_admin),
+    name: str = Form(...), username: str = Form(...),
+    role: str = Form(...), condo_id: str = Form("")):
+
+    if not is_super_admin(user_session):
+        raise HTTPException(403, "Acesso negado")
+
+    try:
+        supabase.table("system_users").update({
+            "name": name,
+            "username": username,
+            "role": role,
+            "condo_id": condo_id if condo_id else None
+        }).eq("id", user_id).execute()
+        return RedirectResponse(url=f"/admin/users?success=Usuário '{name}' atualizado com sucesso!", status_code=302)
+    except Exception as e:
+        return RedirectResponse(url=f"/admin/users?error={str(e)}", status_code=302)
+
+
+@app.post("/admin/users/{user_id}/reset-password")
+async def admin_user_reset_password(user_id: str, request: Request,
+    user_session: dict = Depends(authenticate_admin),
+    new_password: str = Form(...)):
+
+    if not is_super_admin(user_session):
+        raise HTTPException(403, "Acesso negado")
+
+    if len(new_password) < 8:
+        return RedirectResponse(url="/admin/users?error=Senha deve ter no mínimo 8 caracteres.", status_code=302)
+
+    password_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    try:
+        supabase.table("system_users").update({"password_hash": password_hash}).eq("id", user_id).execute()
+        return RedirectResponse(url="/admin/users?success=Senha redefinida com sucesso!", status_code=302)
+    except Exception as e:
+        return RedirectResponse(url=f"/admin/users?error={str(e)}", status_code=302)
+
+
+@app.post("/admin/users/{user_id}/delete")
+async def admin_user_delete(user_id: str, user_session: dict = Depends(authenticate_admin)):
+    if not is_super_admin(user_session):
+        raise HTTPException(403, "Acesso negado")
+
+    # Não deixa excluir a si mesmo
+    try:
+        res = supabase.table("system_users").select("username").eq("id", user_id).maybe_single().execute()
+        if res.data and res.data["username"] == user_session.get("sub"):
+            return RedirectResponse(url="/admin/users?error=Você não pode excluir seu próprio usuário.", status_code=302)
+
+        supabase.table("system_users").delete().eq("id", user_id).execute()
+        return RedirectResponse(url="/admin/users?success=Usuário excluído com sucesso!", status_code=302)
+    except Exception as e:
+        return RedirectResponse(url=f"/admin/users?error={str(e)}", status_code=302)

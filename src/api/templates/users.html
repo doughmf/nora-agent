@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuários - SYNDRA Painel</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>.custom-gradient { background: linear-gradient(135deg, #0d9488, #0f766e); }</style>
+</head>
+<body class="bg-base-200 min-h-screen">
+
+    <!-- Navbar -->
+    <div class="navbar custom-gradient text-primary-content shadow-lg px-8">
+        <div class="flex-1">
+            <a href="/admin/dashboard" class="text-xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-robot"></i> SYNDRA Painel Admin
+            </a>
+        </div>
+        <div class="flex-none gap-2">
+            <div class="text-right mr-2 flex flex-col justify-center">
+                <span class="text-sm font-bold leading-tight">{{ user.name }}</span>
+                <span class="text-xs text-teal-200 leading-tight uppercase">{{ user.role }}</span>
+            </div>
+            <a href="/admin/logout" class="btn btn-ghost btn-sm text-white border border-white/30">
+                <i class="fa-solid fa-right-from-bracket"></i> Sair
+            </a>
+        </div>
+    </div>
+
+    <div class="p-6 max-w-5xl mx-auto space-y-6">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold">Usuários do Sistema</h1>
+                <p class="text-gray-500 text-sm mt-1">Gerencie quem tem acesso ao painel Syndra</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="/admin/dashboard" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-arrow-left"></i> Dashboard
+                </a>
+                <button onclick="document.getElementById('modal-new-user').showModal()" class="btn btn-primary btn-sm custom-gradient text-white border-none">
+                    <i class="fa-solid fa-user-plus"></i> Novo Usuário
+                </button>
+            </div>
+        </div>
+
+        <!-- Alertas -->
+        {% if success %}
+        <div role="alert" class="alert alert-success">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>{{ success }}</span>
+        </div>
+        {% endif %}
+        {% if error %}
+        <div role="alert" class="alert alert-error">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Tabela de Usuários -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body p-0">
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr class="bg-base-200">
+                                <th>Nome</th>
+                                <th>Usuário</th>
+                                <th>Perfil</th>
+                                <th>Condomínio</th>
+                                <th>Criado em</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr>
+                                <td class="font-semibold">{{ u.name }}</td>
+                                <td class="font-mono text-sm text-gray-500">{{ u.username }}</td>
+                                <td>
+                                    {% if u.role == 'admin' or u.role == 'super_admin' %}
+                                        <span class="badge badge-error gap-1 text-xs"><i class="fa-solid fa-crown"></i> Super Admin</span>
+                                    {% elif u.role == 'condo_admin' %}
+                                        <span class="badge badge-primary gap-1 text-xs"><i class="fa-solid fa-building"></i> Admin Condo</span>
+                                    {% else %}
+                                        <span class="badge badge-ghost text-xs">{{ u.role }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-sm text-gray-500">
+                                    {% if u.condo_name %}
+                                        <i class="fa-solid fa-building text-xs mr-1"></i>{{ u.condo_name }}
+                                    {% else %}
+                                        <span class="text-gray-300">— Todos —</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-xs text-gray-400">{{ u.created_at[:10] if u.created_at else '-' }}</td>
+                                <td class="text-center">
+                                    <div class="flex gap-2 justify-center">
+                                        <!-- Botão Editar -->
+                                        <button onclick="openEditModal('{{ u.id }}', '{{ u.name }}', '{{ u.username }}', '{{ u.role }}', '{{ u.condo_id or '' }}')"
+                                            class="btn btn-xs btn-outline btn-info">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                        <!-- Botão Reset Senha -->
+                                        <button onclick="openResetModal('{{ u.id }}', '{{ u.name }}')"
+                                            class="btn btn-xs btn-outline btn-warning">
+                                            <i class="fa-solid fa-key"></i>
+                                        </button>
+                                        <!-- Botão Excluir (não permite excluir a si mesmo) -->
+                                        {% if u.username != current_user_username %}
+                                        <button onclick="openDeleteModal('{{ u.id }}', '{{ u.name }}')"
+                                            class="btn btn-xs btn-outline btn-error">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-8 text-gray-400">
+                                    <i class="fa-solid fa-users-slash text-3xl mb-2 block"></i>
+                                    Nenhum usuário encontrado.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL: Novo Usuário ═══ -->
+    <dialog id="modal-new-user" class="modal">
+        <div class="modal-box w-11/12 max-w-lg">
+            <h3 class="font-bold text-lg mb-4"><i class="fa-solid fa-user-plus mr-2 text-teal-600"></i>Novo Usuário</h3>
+            <form action="/admin/users/new" method="POST" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="form-control col-span-2">
+                        <label class="label"><span class="label-text font-semibold">Nome completo *</span></label>
+                        <input type="text" name="name" class="input input-bordered" placeholder="Ex: João da Silva" required>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Usuário (login) *</span></label>
+                        <input type="text" name="username" class="input input-bordered" placeholder="Ex: joao.silva" required>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Senha *</span></label>
+                        <input type="password" name="password" class="input input-bordered" placeholder="Mínimo 8 caracteres" minlength="8" required>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Perfil *</span></label>
+                        <select name="role" class="select select-bordered" onchange="toggleCondoSelect(this)">
+                            <option value="condo_admin">Admin Condomínio</option>
+                            <option value="admin">Super Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-control" id="condo-select-wrapper">
+                        <label class="label"><span class="label-text font-semibold">Condomínio *</span></label>
+                        <select name="condo_id" class="select select-bordered">
+                            <option value="">— Selecione —</option>
+                            {% for c in condos %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-action">
+                    <button type="button" onclick="document.getElementById('modal-new-user').close()" class="btn btn-ghost">Cancelar</button>
+                    <button type="submit" class="btn btn-primary custom-gradient text-white border-none">
+                        <i class="fa-solid fa-floppy-disk mr-1"></i> Criar Usuário
+                    </button>
+                </div>
+            </form>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button>fechar</button></form>
+    </dialog>
+
+    <!-- ═══ MODAL: Editar Usuário ═══ -->
+    <dialog id="modal-edit-user" class="modal">
+        <div class="modal-box w-11/12 max-w-lg">
+            <h3 class="font-bold text-lg mb-4"><i class="fa-solid fa-pen mr-2 text-blue-500"></i>Editar Usuário</h3>
+            <form id="form-edit-user" action="" method="POST" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="form-control col-span-2">
+                        <label class="label"><span class="label-text font-semibold">Nome completo *</span></label>
+                        <input type="text" id="edit-name" name="name" class="input input-bordered" required>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Usuário (login) *</span></label>
+                        <input type="text" id="edit-username" name="username" class="input input-bordered" required>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Perfil *</span></label>
+                        <select id="edit-role" name="role" class="select select-bordered" onchange="toggleEditCondoSelect(this)">
+                            <option value="condo_admin">Admin Condomínio</option>
+                            <option value="admin">Super Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-control col-span-2" id="edit-condo-select-wrapper">
+                        <label class="label"><span class="label-text font-semibold">Condomínio</span></label>
+                        <select id="edit-condo-id" name="condo_id" class="select select-bordered">
+                            <option value="">— Todos (Super Admin) —</option>
+                            {% for c in condos %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-action">
+                    <button type="button" onclick="document.getElementById('modal-edit-user').close()" class="btn btn-ghost">Cancelar</button>
+                    <button type="submit" class="btn btn-info text-white">
+                        <i class="fa-solid fa-floppy-disk mr-1"></i> Salvar Alterações
+                    </button>
+                </div>
+            </form>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button>fechar</button></form>
+    </dialog>
+
+    <!-- ═══ MODAL: Reset de Senha ═══ -->
+    <dialog id="modal-reset-password" class="modal">
+        <div class="modal-box max-w-sm">
+            <h3 class="font-bold text-lg mb-4"><i class="fa-solid fa-key mr-2 text-yellow-500"></i>Redefinir Senha</h3>
+            <p class="text-sm text-gray-500 mb-4">Definindo nova senha para: <strong id="reset-user-name"></strong></p>
+            <form id="form-reset-password" action="" method="POST" class="space-y-4">
+                <div class="form-control">
+                    <label class="label"><span class="label-text font-semibold">Nova Senha *</span></label>
+                    <input type="password" name="new_password" class="input input-bordered" placeholder="Mínimo 8 caracteres" minlength="8" required>
+                </div>
+                <div class="modal-action">
+                    <button type="button" onclick="document.getElementById('modal-reset-password').close()" class="btn btn-ghost">Cancelar</button>
+                    <button type="submit" class="btn btn-warning text-white">
+                        <i class="fa-solid fa-key mr-1"></i> Redefinir
+                    </button>
+                </div>
+            </form>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button>fechar</button></form>
+    </dialog>
+
+    <!-- ═══ MODAL: Confirmar Exclusão ═══ -->
+    <dialog id="modal-delete-user" class="modal">
+        <div class="modal-box max-w-sm">
+            <h3 class="font-bold text-lg mb-2 text-error"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Confirmar Exclusão</h3>
+            <p class="text-sm text-gray-500 mb-4">Tem certeza que deseja excluir o usuário <strong id="delete-user-name"></strong>? Esta ação não pode ser desfeita.</p>
+            <form id="form-delete-user" action="" method="POST">
+                <div class="modal-action">
+                    <button type="button" onclick="document.getElementById('modal-delete-user').close()" class="btn btn-ghost">Cancelar</button>
+                    <button type="submit" class="btn btn-error text-white">
+                        <i class="fa-solid fa-trash mr-1"></i> Excluir
+                    </button>
+                </div>
+            </form>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button>fechar</button></form>
+    </dialog>
+
+    <script>
+        function toggleCondoSelect(sel) {
+            const wrapper = document.getElementById('condo-select-wrapper');
+            wrapper.style.display = sel.value === 'admin' ? 'none' : 'block';
+        }
+        function toggleEditCondoSelect(sel) {
+            const wrapper = document.getElementById('edit-condo-select-wrapper');
+            wrapper.style.display = sel.value === 'admin' ? 'none' : 'block';
+        }
+        function openEditModal(id, name, username, role, condoId) {
+            document.getElementById('form-edit-user').action = `/admin/users/${id}/edit`;
+            document.getElementById('edit-name').value = name;
+            document.getElementById('edit-username').value = username;
+            document.getElementById('edit-role').value = role;
+            document.getElementById('edit-condo-id').value = condoId;
+            toggleEditCondoSelect(document.getElementById('edit-role'));
+            document.getElementById('modal-edit-user').showModal();
+        }
+        function openResetModal(id, name) {
+            document.getElementById('reset-user-name').innerText = name;
+            document.getElementById('form-reset-password').action = `/admin/users/${id}/reset-password`;
+            document.getElementById('modal-reset-password').showModal();
+        }
+        function openDeleteModal(id, name) {
+            document.getElementById('delete-user-name').innerText = name;
+            document.getElementById('form-delete-user').action = `/admin/users/${id}/delete`;
+            document.getElementById('modal-delete-user').showModal();
+        }
+    </script>
+</body>
+</html>
