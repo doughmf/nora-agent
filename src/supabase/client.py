@@ -12,6 +12,14 @@ async def resolve_condo_by_instance(instance_name: str) -> str | None:
         return res.data["id"]
     return None
 
+
+async def get_evolution_instance(condo_id: str) -> str | None:
+    """Busca o nome da instância Evolution associada a um condomínio (para multi-tenant)."""
+    res = supabase.table("condos").select("evolution_instance").eq("id", condo_id).maybe_single().execute()
+    if res.data:
+        return res.data["evolution_instance"]
+    return None
+
 async def semantic_search(condo_id: str, query_embedding: list[float], threshold: float = 0.75) -> list[dict]:
     """Busca semântica isolada por condomínio."""
     result = supabase.rpc("search_knowledge", {
