@@ -17,6 +17,8 @@ services:
       - REDIS_URL=${REDIS_URL}
       - SECRET_KEY=${SECRET_KEY}
       - ADMIN_KEY=${ADMIN_KEY}
+      - ADMIN_USER=${ADMIN_USER}
+      - ADMIN_PASS=${ADMIN_PASS}
       - DOMAIN=${DOMAIN}
       - CONDO_NAME=${CONDO_NAME}
       - CONDO_CNPJ=${CONDO_CNPJ}
