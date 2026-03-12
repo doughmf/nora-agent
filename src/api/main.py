@@ -46,7 +46,7 @@ app.add_middleware(
 async def health():
     return {
         "status": "ok",
-        "service": "Syndra Agent",
+        "service": "Syndra Agent V2",
         "timestamp": datetime.now().isoformat()
     }
 
