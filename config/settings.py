@@ -29,7 +29,23 @@ class Settings(BaseSettings):
     ZELADOR_PHONE: str = ""
     PORTARIA_PHONE: str = ""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    # Extra Variables from .env (Allowing to prevent validation errors)
+    SUPABASE_ACCESS_TOKEN: str = ""
+    REDIS_PASSWORD: str = ""
+    ADMIN_KEY: str = ""
+    DOMAIN: str = ""
+    CONDO_CNPJ: str = ""
+    CONDO_ADDRESS: str = ""
+    SINDICO_NAME: str = ""
+    ZELADOR_NAME: str = ""
+    ADMINISTRADORA_PHONE: str = ""
+    SALAO_PRECO_NOITE: str = ""
+    SALAO_PRECO_DIA: str = ""
+    CHURRASQUEIRA_PRECO: str = ""
+    PIX_CHAVE: str = ""
+    PIX_NOME: str = ""
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="allow")
 
 settings = Settings()
 
