@@ -256,7 +256,7 @@ async def admin_settings_page(request: Request, user_session: dict = Depends(aut
     keys_to_load = [
         "AGENT_NAME", "CONDO_NAME", "CONDO_CNPJ", "CONDO_ADDRESS", "SINDICO_NAME", "SINDICO_PHONE",
         "ZELADOR_NAME", "ZELADOR_PHONE", "PORTARIA_PHONE", "ADMINISTRADORA_PHONE",
-        "SALAO_PRECO_NOITE", "SALAO_PRECO_DIA", "CHURRASQUEIRA_PRECO", "PIX_CHAVE", "PIX_NOME"
+        "SALAO_PRECO_NOITE", "SALAO_PRECO_DIA", "CHURRASQUEIRA_PRECO", "PIX_TIPO", "PIX_CHAVE", "PIX_NOME"
     ]
     
     current_settings = {k: get_setting(k) for k in keys_to_load}

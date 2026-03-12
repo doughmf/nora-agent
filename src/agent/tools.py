@@ -350,6 +350,15 @@ async def _criar_reserva(espaco: str, data: str, periodo: str, num_convidados: i
         "payment_status": "aguardando"
     }).execute()
     
+    from src.api.settings_manager import get_setting
+    
+    pix_chave = get_setting("PIX_CHAVE", "Não configurada")
+    pix_nome = get_setting("PIX_NOME", "Não configurado")
+    pix_tipo = get_setting("PIX_TIPO", "CNPJ")
+    preco_salao_n = get_setting("SALAO_PRECO_NOITE", "200")
+    preco_salao_d = get_setting("SALAO_PRECO_DIA", "150")
+    preco_churr = get_setting("CHURRASQUEIRA_PRECO", "100")
+    
     return {
         "booking_ref": booking_ref,
         "espaco": espaco,
@@ -357,7 +366,7 @@ async def _criar_reserva(espaco: str, data: str, periodo: str, num_convidados: i
         "periodo": periodo,
         "valor": valor,
         "status": "Pré-reserva criada. Aguardando confirmação do pagamento.",
-        "instrucao_pagamento": f"Instrução: Retorne com educação informando a chave PIX, o nome do recebedor ({{pix_nome}}) e os preços: Salão R$ {{preco_salao_n}} (Noturno) / R$ {{preco_salao_d}} (Diurno) e Churrasqueira R$ {{preco_churr}}. Mencionar explicitamente para não esquecerem de enviar o comprovante com a data/hora exata da reserva na mensagem para a administração ou síndico registrar. Mencionar que o pagamento é sua validação. Mencionar que você não emite boleto e só envia os dados."
+        "instrucao_pagamento": f"Instrução: Retorne com educação informando a chave PIX principal. TIPO: {pix_tipo} | CHAVE: {pix_chave} | NOME RECEBEDOR: {pix_nome}. Reforce os preços: Salão R$ {preco_salao_n} (Noturno) / R$ {preco_salao_d} (Diurno) e Churrasqueira R$ {preco_churr}. Mencionar explicitamente para não esquecerem de enviar o comprovante com a data/hora exata da reserva na mensagem para a administração ou síndico registrar. Mencionar que o pagamento é sua validação. Mencionar que você não emite boleto e só envia os dados."
     }
 
 

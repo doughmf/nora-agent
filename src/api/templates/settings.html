@@ -142,7 +142,16 @@
                         <label class="label"><span class="label-text font-semibold">Preço Churrasqueira (R$)</span></label>
                         <input type="number" name="CHURRASQUEIRA_PRECO" value="{{ settings.get('CHURRASQUEIRA_PRECO', '') }}" class="input input-bordered" />
                     </div>
-                    <div class="form-control md:col-span-2">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-semibold">Tipo de Chave PIX</span></label>
+                        <select name="PIX_TIPO" class="select select-bordered w-full">
+                            <option value="CNPJ" {% if settings.get('PIX_TIPO') == 'CNPJ' %}selected{% endif %}>CNPJ</option>
+                            <option value="E-mail" {% if settings.get('PIX_TIPO') == 'E-mail' %}selected{% endif %}>E-mail</option>
+                            <option value="Telefone" {% if settings.get('PIX_TIPO') == 'Telefone' %}selected{% endif %}>Telefone</option>
+                            <option value="Chave Aleatória" {% if settings.get('PIX_TIPO') == 'Chave Aleatória' %}selected{% endif %}>Chave Aleatória</option>
+                        </select>
+                    </div>
+                    <div class="form-control">
                         <label class="label"><span class="label-text font-semibold">Chave PIX (NORA informa no pagamento)</span></label>
                         <input type="text" name="PIX_CHAVE" value="{{ settings.get('PIX_CHAVE', '') }}" class="input input-bordered" />
                     </div>
