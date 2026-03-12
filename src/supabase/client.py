@@ -1,9 +1,10 @@
 # src/supabase/client.py
 from supabase import create_client, Client
-from config.settings import SUPABASE_URL, SUPABASE_SERVICE_KEY
+from config.settings import SUPABASE_URL, SUPABASE_ANON_KEY
 import numpy as np
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+# Usa a ANON_KEY (JWT válido) — a publishable key causa 406 Not Acceptable
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 async def semantic_search(query_embedding: list[float], threshold: float = 0.75) -> list[dict]:
     """Busca semântica na base de conhecimento."""
@@ -22,7 +23,8 @@ async def get_or_create_resident(phone: str) -> dict:
         .maybe_single() \
         .execute()
     
-    if result.data:
+    # maybe_single() + execute() retorna None quando não há resultado
+    if result is not None and result.data:
         return result.data
     
     # Criar novo residente (onboarding pendente)
