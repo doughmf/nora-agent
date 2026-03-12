@@ -61,6 +61,15 @@ async def debug_logs():
     except Exception as e:
         return {"error": str(e)}
 
+@app.get("/admin/source-code")
+async def source_code():
+    """Retorna o código do main.py para conferência."""
+    try:
+        with open(__file__, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f"<pre>{f.read()}</pre>")
+    except Exception as e:
+        return {"error": str(e)}
+
 # ─── Configuração Frontend Web ─────────────────────
 # Templates
 templates_dir = os.path.join(os.path.dirname(__file__), "templates")
