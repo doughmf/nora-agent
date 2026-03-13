@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     
     # Condominio Variables
-    CONDO_NAME: str = "Residencial Nogueira Martins"
+    CONDO_NAME: str = "Condomínio SaaS"
     SINDICO_PHONE: str = ""
     ZELADOR_PHONE: str = ""
     PORTARIA_PHONE: str = ""

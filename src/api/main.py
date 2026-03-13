@@ -3,12 +3,12 @@ Syndra Agent — API Principal (SaaS Multi-tenant)
 
 Perfis: super_admin > admin > sindico > colaborador
 """
-from fastapi import FastAPI, Request, BackgroundTasks, HTTPException, Header, Depends, status, Form
+from fastapi import FastAPI, Request, BackgroundTasks, HTTPException, Header, Depends, status, Form, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from contextlib import asynccontextmanager
-import logging, os, secrets, jwt, bcrypt, hashlib, uuid
+import logging, os, secrets, jwt, bcrypt, hashlib, uuid, json, io, csv
 from datetime import datetime, timedelta
 from src.api.settings_manager import get_setting, set_setting, invalidate_cache
 from src.api.permissions import (
@@ -24,9 +24,11 @@ logger = logging.getLogger("syndra")
 # ─── JWT Secret ────────────────────────────────────────────
 JWT_SECRET = settings.SECRET_KEY
 if not JWT_SECRET:
+    logger.warning("⚠️  AVISO CRÍTICO: SECRET_KEY não definida — Não recomendado para produção!")
+    logger.warning("    Defina SECRET_KEY=<valor-seguro> no arquivo .env")
     seed = f"{settings.SUPABASE_URL}{settings.SUPABASE_SERVICE_KEY}"
     JWT_SECRET = hashlib.sha256(seed.encode()).hexdigest()
-    logger.warning("⚠️  SECRET_KEY não definida — JWT derivado do Supabase. Defina SECRET_KEY no .env.")
+    logger.warning(f"    Usando JWT derivado (inseguro). Hash: {JWT_SECRET[:20]}...")
 
 ALLOWED_ORIGINS = [f"https://{settings.DOMAIN}"] if settings.DOMAIN else ["*"]
 
@@ -42,7 +44,14 @@ app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_methods=
 templates_dir = os.path.join(os.path.dirname(__file__), "templates")
 templates = Jinja2Templates(directory=templates_dir)
 
-from src.supabase.client import supabase
+# Carregar Supabase client com validação de erro
+try:
+    from src.supabase.client import supabase
+    logger.info("✅ Supabase client carregado com sucesso")
+except Exception as e:
+    logger.error(f"❌ Erro crítico ao carregar Supabase client: {e}")
+    logger.error("   Verifique SUPABASE_URL, SUPABASE_SERVICE_KEY e SUPABASE_ANON_KEY no .env")
+    raise RuntimeError("Falha ao inicializar Supabase client") from e
 
 # ─── JWT Helpers ───────────────────────────────────────────
 def create_access_token(data: dict) -> str:
